@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Poppins", system-ui, sans-serif;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #FBF7F0;
+  color: #2E0C15;
+}
+
+/* Large, thumb-friendly tap targets everywhere by default (spec section 24) */
+button, a, input, select, textarea {
+  font-size: 16px; /* prevents iOS auto-zoom on focus */
+}
+
+.touch-target {
+  min-height: 48px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
