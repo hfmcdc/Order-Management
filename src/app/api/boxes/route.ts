@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createBox, listBoxContents, listBoxes, updateBox } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const [boxes, boxContents] = await Promise.all([listBoxes(), listBoxContents()]);

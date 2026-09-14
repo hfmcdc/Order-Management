@@ -3,6 +3,11 @@ import { getAllData } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 import { computeProductionRows, isOrderActive } from "@/lib/calculations";
 
+// Always hit Google Sheets fresh — never let Vercel/Next.js cache this
+// route's response, or new orders/edits would appear to vanish.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const { customers, products, boxes, boxContents, orders, orderItems } = await getAllData();

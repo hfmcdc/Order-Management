@@ -84,7 +84,7 @@ export default function OrdersPage() {
                 </p>
                 <p className="text-xs text-maroon-700/60">
                   {order.order_id} · {order.totalBoxes} boxes · {order.totalIndividualItems} individual ·{" "}
-                  {order.fulfillment_date}
+                  {order.order_date}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">

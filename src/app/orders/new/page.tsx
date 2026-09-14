@@ -33,10 +33,6 @@ export default function NewOrderPage() {
   // Order lines
   const [boxQuantities, setBoxQuantities] = useState<Record<string, number>>({});
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
-  const [fulfillmentType, setFulfillmentType] = useState<"Pickup" | "Delivery">("Pickup");
-  const [fulfillmentDate, setFulfillmentDate] = useState(() =>
-    new Date().toISOString().slice(0, 10)
-  );
   const [notes, setNotes] = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -64,8 +60,8 @@ export default function NewOrderPage() {
 
   async function createCustomerNow() {
     setSaveError(null);
-    if (!newCustomer.name.trim() || !newCustomer.phone.trim()) {
-      setSaveError("Please enter a name and phone number.");
+    if (!newCustomer.name.trim()) {
+      setSaveError("Please enter a name.");
       return;
     }
     try {
@@ -136,8 +132,6 @@ export default function NewOrderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: selectedCustomer.customer_id,
-          fulfillment_type: fulfillmentType,
-          fulfillment_date: fulfillmentDate,
           notes,
           items,
         }),
@@ -245,7 +239,7 @@ export default function NewOrderPage() {
                   className="touch-target rounded-card border border-clay-300 px-4"
                 />
                 <input
-                  placeholder="Phone"
+                  placeholder="Phone (optional)"
                   value={newCustomer.phone}
                   onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                   className="touch-target rounded-card border border-clay-300 px-4"
@@ -334,31 +328,9 @@ export default function NewOrderPage() {
         </div>
       </section>
 
-      {/* Fulfillment */}
+      {/* Notes */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-display font-600 text-lg text-maroon-800">4. Fulfillment</h2>
-        <div className="flex gap-2">
-          {(["Pickup", "Delivery"] as const).map((type) => (
-            <button
-              key={type}
-              onClick={() => setFulfillmentType(type)}
-              className={clsx(
-                "touch-target flex-1 rounded-full font-medium border",
-                fulfillmentType === type
-                  ? "bg-maroon-800 text-white border-maroon-800"
-                  : "bg-white text-maroon-800 border-clay-300"
-              )}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-        <input
-          type="date"
-          value={fulfillmentDate}
-          onChange={(e) => setFulfillmentDate(e.target.value)}
-          className="touch-target rounded-card border border-clay-300 px-4 bg-white"
-        />
+        <h2 className="font-display font-600 text-lg text-maroon-800">4. Notes</h2>
         <textarea
           placeholder="Notes (optional)"
           value={notes}

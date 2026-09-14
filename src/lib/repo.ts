@@ -63,6 +63,21 @@ export async function createCustomer(input: {
   } as Customer);
 }
 
+export async function updateCustomer(
+  id: string,
+  patch: Partial<Pick<Customer, "name" | "phone" | "address">>
+): Promise<void> {
+  if (patch.phone) {
+    const existing = await findCustomerByPhone(patch.phone);
+    if (existing && existing.customer_id !== id) {
+      throw new Error(
+        `Another customer (${existing.name}) already uses phone ${patch.phone}.`
+      );
+    }
+  }
+  await updateRow<Customer>("Customers", id, { ...patch, updated_at: nowIso() });
+}
+
 export async function searchCustomers(query: string): Promise<Customer[]> {
   const customers = await listCustomers();
   const q = query.trim().toLowerCase();

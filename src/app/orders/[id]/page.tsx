@@ -6,6 +6,7 @@ import { LoadingState, ErrorState } from "@/components/StateViews";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
 import { OrderWithDetails, ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/types";
 import { useState } from "react";
+import EditOrderItems from "@/components/EditOrderItems";
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ export default function OrderDetailPage() {
   );
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingItems, setEditingItems] = useState(false);
 
   async function patchOrder(body: Record<string, any>) {
     setBusy(true);
@@ -41,6 +43,28 @@ export default function OrderDetailPage() {
 
   const order = data.order;
 
+  if (editingItems) {
+    return (
+      <div className="flex flex-col gap-4 pb-8">
+        <button
+          onClick={() => setEditingItems(false)}
+          className="self-start text-sm text-marigold-600 font-medium touch-target"
+        >
+          ← Back to order
+        </button>
+        <h1 className="font-display font-700 text-2xl text-maroon-800">Edit {order.order_id}</h1>
+        <EditOrderItems
+          order={order}
+          onCancel={() => setEditingItems(false)}
+          onSaved={() => {
+            setEditingItems(false);
+            refresh();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 pb-8">
       <button
@@ -64,7 +88,6 @@ export default function OrderDetailPage() {
       </header>
 
       <section className="rounded-card bg-white border border-clay-300/70 p-4 grid grid-cols-2 gap-4 text-sm">
-        <Info label="Fulfillment" value={`${order.fulfillment_type} · ${order.fulfillment_date}`} />
         <Info label="Order date" value={order.order_date} />
         <Info label="Boxes" value={String(order.totalBoxes)} />
         <Info label="Individual items" value={String(order.totalIndividualItems)} />
@@ -73,7 +96,17 @@ export default function OrderDetailPage() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="font-display font-600 text-lg text-maroon-800">Items</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-600 text-lg text-maroon-800">Items</h2>
+          {order.status !== "Cancelled" && (
+            <button
+              onClick={() => setEditingItems(true)}
+              className="text-sm text-marigold-600 font-medium touch-target px-2"
+            >
+              Edit items
+            </button>
+          )}
+        </div>
         <div className="rounded-card bg-white border border-clay-300/70 divide-y divide-clay-300/50">
           {order.items.map((item) => (
             <div key={item.order_item_id} className="px-4 py-2.5 flex items-center justify-between text-sm">

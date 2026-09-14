@@ -231,10 +231,17 @@ export async function updateRow<T extends Record<string, any>>(
     throw new SheetsApiError(`Could not find ${tab} row with ${idColumn}=${id}`);
   }
 
-  // Read the existing row so unspecified columns are preserved.
+  // Read the existing row so unspecified columns are preserved. Strip any
+  // keys whose value is `undefined` from the patch first — callers often
+  // build patch objects from destructured request bodies where an omitted
+  // field still shows up as an explicit `undefined` key, and spreading that
+  // over `existing` would otherwise blank the column out.
   const existingRows = await readSheet<any>(tab);
   const existing = existingRows.find((r) => r[idColumn] === id) ?? {};
-  const merged = { ...existing, ...patch };
+  const definedPatch = Object.fromEntries(
+    Object.entries(patch).filter(([, v]) => v !== undefined)
+  );
+  const merged = { ...existing, ...definedPatch };
 
   const values = [columns.map((col) => stringifyCell(merged[col]))];
   const range = `${SHEET_TABS[tab]}!A${rowIndex + 2}:${colLetter(columns.length)}${rowIndex + 2}`;

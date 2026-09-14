@@ -8,6 +8,7 @@ import { ProductionRow } from "@/lib/types";
 interface ProductionResponse {
   rows: ProductionRow[];
   boxTotals: { box_id: string; name: string; total: number }[];
+  customerOrders: { order_id: string; customerName: string; summary: string }[];
 }
 
 export default function ProductionPage() {
@@ -74,6 +75,30 @@ export default function ProductionPage() {
                     <span className="font-semibold text-maroon-800">{b.total}</span>
                   </div>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {data.customerOrders.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h2 className="font-display font-600 text-lg text-maroon-800">Customer orders</h2>
+              <div className="rounded-card border border-clay-300/70 bg-white overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-clay-100/60 text-maroon-700/70 text-left">
+                      <th className="px-4 py-2.5 font-medium w-1/3">Customer</th>
+                      <th className="px-4 py-2.5 font-medium">Order</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.customerOrders.map((co) => (
+                      <tr key={co.order_id} className="border-t border-clay-300/50 align-top">
+                        <td className="px-4 py-2.5 font-medium text-maroon-800">{co.customerName}</td>
+                        <td className="px-4 py-2.5 text-maroon-700/80">{co.summary}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </section>
           )}

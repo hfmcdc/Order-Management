@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
-import { getAllData, getCustomerTotals } from "@/lib/repo";
+import { NextRequest, NextResponse } from "next/server";
+import { getAllData, getCustomerTotals, updateCustomer } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 import { computeOrderWithDetails } from "@/lib/calculations";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
@@ -20,6 +23,23 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
     return NextResponse.json({ totals, orders: orderHistory });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const body = await req.json();
+    if (!body?.name?.trim() && !body?.phone?.trim() && body?.address === undefined) {
+      return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
+    }
+    await updateCustomer(params.id, {
+      ...(body.name !== undefined ? { name: body.name.trim() } : {}),
+      ...(body.phone !== undefined ? { phone: body.phone.trim() } : {}),
+      ...(body.address !== undefined ? { address: body.address } : {}),
+    });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return handleApiError(err);
   }

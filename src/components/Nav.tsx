@@ -39,17 +39,17 @@ export default function Nav() {
 
       {/* Mobile bottom nav */}
       <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-clay-300 flex items-stretch justify-around">
-        {LINKS.slice(0, 5).map((link) => (
+        {LINKS.map((link) => (
           <Link
             key={link.href}
             href={link.href}
             className={clsx(
-              "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 touch-target",
+              "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 touch-target min-w-0 px-0.5",
               isActive(pathname, link.href) ? "text-marigold-600" : "text-maroon-700/60"
             )}
           >
             <link.icon />
-            <span className="text-[11px] leading-none">{link.label}</span>
+            <span className="text-[9.5px] leading-none truncate">{link.label}</span>
           </Link>
         ))}
       </nav>
