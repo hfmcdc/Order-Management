@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import clsx from "clsx";
 
 const LINKS = [
@@ -11,6 +12,7 @@ const LINKS = [
   { href: "/production", label: "Production", icon: ProductionIcon },
   { href: "/products", label: "Products", icon: ProductsIcon },
   { href: "/boxes", label: "Boxes", icon: BoxIcon },
+  { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export default function Nav() {
@@ -20,11 +22,16 @@ export default function Nav() {
     <>
       {/* Desktop side rail */}
       <nav className="hidden md:flex md:flex-col md:w-56 md:shrink-0 border-r border-clay-300/60 bg-ivory px-4 py-6 gap-1">
-        <div className="mb-6 px-2">
-          <p className="font-display font-700 text-lg text-maroon-800 leading-tight">
-            Vaiga
-          </p>
-          <p className="text-xs text-maroon-700/70">Sweets &amp; Snacks — Diwali 2026</p>
+        <div className="mb-6 px-2 flex items-center gap-2.5">
+          <div className="w-9 h-9 relative shrink-0">
+            <Image src="/logo.png" alt="Vaiga" fill sizes="36px" />
+          </div>
+          <div>
+            <p className="font-display font-700 text-lg text-maroon-800 leading-tight">
+              Vaiga
+            </p>
+            <p className="text-[11px] text-maroon-700/70 leading-tight">Diwali 2026</p>
+          </div>
         </div>
         {LINKS.map((link) => (
           <NavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
@@ -131,6 +138,14 @@ function BoxIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M3 8 12 4l9 4-9 4-9-4Z" strokeLinejoin="round" />
       <path d="M3 8v9l9 4 9-4V8M12 12v9" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function SettingsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.96 19a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 14.6a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.16 1.7 1.7 0 0 0 10.04 2.6V2.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 8.5c.12.51.55.9 1.06 1.04H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
     </svg>
   );
 }

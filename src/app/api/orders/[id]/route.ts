@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   cancelOrder,
   getOrderWithDetails,
+  listBoxes,
+  listProducts,
   restoreOrder,
   updateOrderDetails,
 } from "@/lib/repo";
@@ -16,7 +18,19 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     if (!order) {
       return NextResponse.json({ error: "Order not found." }, { status: 404 });
     }
-    return NextResponse.json({ order });
+
+    // Attach a human-readable name to each line item (box/product name), so
+    // the UI, print view, and WhatsApp message don't have to show raw IDs.
+    const [boxes, products] = await Promise.all([listBoxes(), listProducts()]);
+    const itemsWithNames = order.items.map((item) => ({
+      ...item,
+      name:
+        item.item_type === "box"
+          ? boxes.find((b) => b.box_id === item.box_id)?.name ?? "Box"
+          : products.find((p) => p.product_id === item.product_id)?.name ?? "Product",
+    }));
+
+    return NextResponse.json({ order: { ...order, items: itemsWithNames } });
   } catch (err) {
     return handleApiError(err);
   }

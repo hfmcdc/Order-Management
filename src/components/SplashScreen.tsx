@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 const SESSION_KEY = "vaiga-splash-shown";
-const VISIBLE_MS = 1400;
+const VISIBLE_MS = 1600;
 const FADE_MS = 500;
 
 export default function SplashScreen() {
@@ -37,24 +38,23 @@ export default function SplashScreen() {
         pointerEvents: phase === "fading" ? "none" : "auto",
       }}
     >
-      <svg
-        width="72"
-        height="72"
-        viewBox="0 0 100 100"
-        className="mb-4"
-        style={{ animation: "splash-flicker 1.1s ease-in-out infinite" }}
+      <div
+        className="w-28 h-28 relative"
+        style={{ animation: "splash-flicker 1.4s ease-in-out infinite" }}
       >
-        <ellipse cx="50" cy="62" rx="30" ry="11" fill="#F0A93A" />
-        <path
-          d="M50 12 C56 24 62 34 62 42 C62 49 56.5 54 50 54 C43.5 54 38 49 38 42 C38 34 44 24 50 12 Z"
-          fill="#FFD680"
-        />
-      </svg>
-      <p className="font-display font-700 text-2xl text-ivory tracking-wide" style={{ animation: "splash-rise 0.6s ease-out" }}>
-        Vaiga
+        <Image src="/logo.png" alt="Vaiga Sweets & Snacks" fill sizes="112px" priority />
+      </div>
+      <p
+        className="font-display font-700 text-2xl text-gold-300 tracking-wide mt-4"
+        style={{ animation: "splash-rise 0.6s ease-out" }}
+      >
+        Vaiga Sweets &amp; Snacks
       </p>
-      <p className="text-marigold-100/80 text-sm mt-1" style={{ animation: "splash-rise 0.6s ease-out 0.1s both" }}>
-        Sweets &amp; Snacks — Diwali 2026
+      <p
+        className="text-marigold-100/80 text-sm mt-1"
+        style={{ animation: "splash-rise 0.6s ease-out 0.1s both" }}
+      >
+        Diwali 2026 Order Management
       </p>
     </div>
   );

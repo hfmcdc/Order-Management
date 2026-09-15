@@ -8,29 +8,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Deep marigold / turmeric — the lamp-oil warmth of Diwali, not the
-        // generic AI terracotta. Used sparingly for accents and primary actions.
+        // Matches the official Diwali 2026 logo: rich orange/gold body,
+        // deep maroon ribbon and accents, warm cream backgrounds.
         marigold: {
           50: "#FFF8E9",
-          100: "#FFEFC7",
-          400: "#F0A93A",
-          500: "#DE8F1F",
-          600: "#B96F12",
+          100: "#FFEAC0",
+          400: "#F5A623",
+          500: "#E8890B",
+          600: "#C46F05",
         },
-        // Deep maroon/betel — grounding color for text and headers.
         maroon: {
-          700: "#5C1A2B",
-          800: "#43121F",
-          900: "#2E0C15",
+          700: "#6B1220",
+          800: "#4A0D17",
+          900: "#330810",
         },
-        ivory: "#FBF7F0",
+        ivory: "#FFF9EE",
+        gold: {
+          300: "#F6D77A",
+          500: "#E0AA3E",
+        },
         leaf: {
           500: "#3E7A4F",
           600: "#2F5F3D",
         },
         clay: {
-          100: "#F1E7DC",
-          300: "#DDC7AE",
+          100: "#F4E8D6",
+          300: "#E2C79A",
         },
       },
       fontFamily: {

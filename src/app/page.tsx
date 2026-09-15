@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useApi } from "@/lib/useApi";
 import SummaryCard from "@/components/SummaryCard";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { ProductionRow } from "@/lib/types";
+
+interface RecentOrder {
+  order_id: string;
+  customerName: string;
+  itemCount: number;
+  total: number;
+  created_at: string;
+}
 
 interface DashboardResponse {
   summary: {
@@ -13,8 +22,12 @@ interface DashboardResponse {
     totalBoxes: number;
     totalIndividualItems: number;
     totalItems: number;
+    totalOrderValue: number;
   };
   production: ProductionRow[];
+  recentOrders: RecentOrder[];
+  topProducts: ProductionRow[];
+  todaysProduction: ProductionRow[];
 }
 
 export default function DashboardPage() {
@@ -22,41 +35,120 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="font-display font-700 text-2xl text-maroon-800">Dashboard</h1>
-        <p className="text-maroon-700/70 text-sm mt-0.5">
-          Today&apos;s orders at a glance, replacing the paper order book.
-        </p>
-      </header>
+      {/* Hero banner */}
+      <div className="relative rounded-card overflow-hidden bg-maroon-800 px-5 py-6 md:px-8 md:py-8 flex items-center gap-4">
+        <div className="w-16 h-16 md:w-20 md:h-20 relative shrink-0">
+          <Image src="/logo.png" alt="Vaiga Sweets & Snacks" fill sizes="80px" />
+        </div>
+        <div>
+          <h1 className="font-display font-700 text-xl md:text-2xl text-ivory">Welcome back!</h1>
+          <p className="text-marigold-100/80 text-sm mt-0.5">Let&apos;s make this Diwali sweeter.</p>
+        </div>
+      </div>
 
       {loading && <LoadingState label="Loading dashboard…" />}
       {error && <ErrorState message={error} onRetry={refresh} />}
 
       {data && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <SummaryCard label="Total orders" value={data.summary.totalOrders} accent />
             <SummaryCard label="Total customers" value={data.summary.totalCustomers} />
-            <SummaryCard label="Total boxes" value={data.summary.totalBoxes} />
-            <SummaryCard label="Individual items" value={data.summary.totalIndividualItems} />
             <SummaryCard label="Total items" value={data.summary.totalItems} />
+            <SummaryCard label="Order value" value={`₹${data.summary.totalOrderValue}`} />
           </div>
 
-          <section className="flex flex-col gap-3">
+          {/* Quick actions */}
+          <section className="flex flex-wrap gap-2">
+            <Link
+              href="/orders/new"
+              className="touch-target flex items-center rounded-full bg-marigold-500 text-white font-semibold px-5 shadow-sm hover:bg-marigold-600 transition-colors"
+            >
+              + New Order
+            </Link>
+            <Link
+              href="/orders"
+              className="touch-target flex items-center rounded-full bg-white border border-clay-300 text-maroon-800 font-medium px-5"
+            >
+              View Orders
+            </Link>
+            <Link
+              href="/customers"
+              className="touch-target flex items-center rounded-full bg-white border border-clay-300 text-maroon-800 font-medium px-5"
+            >
+              Customers
+            </Link>
+            <Link
+              href="/production"
+              className="touch-target flex items-center rounded-full bg-white border border-clay-300 text-maroon-800 font-medium px-5"
+            >
+              Production
+            </Link>
+          </section>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Recent orders */}
+            <section className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display font-600 text-lg text-maroon-800">Recent orders</h2>
+                <Link href="/orders" className="text-sm text-marigold-600 font-medium">
+                  View all →
+                </Link>
+              </div>
+              {data.recentOrders.length === 0 ? (
+                <EmptyState title="No orders yet" hint="They'll show up here as soon as one is saved." />
+              ) : (
+                <div className="rounded-card border border-clay-300/70 bg-white divide-y divide-clay-300/50">
+                  {data.recentOrders.map((o) => (
+                    <Link
+                      key={o.order_id}
+                      href={`/orders/${o.order_id}`}
+                      className="px-4 py-2.5 flex items-center justify-between text-sm hover:bg-clay-100/40"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-maroon-800 truncate">{o.customerName}</p>
+                        <p className="text-xs text-maroon-700/60">{o.itemCount} items</p>
+                      </div>
+                      <span className="font-semibold text-maroon-800 shrink-0">₹{o.total}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Top products */}
+            <section className="flex flex-col gap-2">
+              <h2 className="font-display font-600 text-lg text-maroon-800">Top products</h2>
+              {data.topProducts.length === 0 ? (
+                <EmptyState title="No production data yet" />
+              ) : (
+                <div className="rounded-card border border-clay-300/70 bg-white divide-y divide-clay-300/50">
+                  {data.topProducts.map((p, i) => (
+                    <div key={p.product_id} className="px-4 py-2.5 flex items-center justify-between text-sm">
+                      <span className="text-maroon-800">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-marigold-100 text-marigold-600 text-xs font-semibold mr-2">
+                          {i + 1}
+                        </span>
+                        {p.name}
+                      </span>
+                      <span className="font-semibold text-maroon-800">{p.total}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Today's production */}
+          <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h2 className="font-display font-600 text-lg text-maroon-800">
-                Production requirements
-              </h2>
+              <h2 className="font-display font-600 text-lg text-maroon-800">Today&apos;s production</h2>
               <Link href="/production" className="text-sm text-marigold-600 font-medium">
                 Full production page →
               </Link>
             </div>
-
-            {data.production.length === 0 ? (
-              <EmptyState
-                title="No active orders yet"
-                hint="Production totals will appear here as soon as orders are added."
-              />
+            {data.todaysProduction.length === 0 ? (
+              <EmptyState title="Nothing scheduled for today yet" />
             ) : (
               <div className="rounded-card border border-clay-300/70 bg-white overflow-hidden">
                 <table className="w-full text-sm">
@@ -69,7 +161,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.production.map((row) => (
+                    {data.todaysProduction.map((row) => (
                       <tr key={row.product_id} className="border-t border-clay-300/50">
                         <td className="px-4 py-2.5">{row.name}</td>
                         <td className="px-4 py-2.5 text-right">{row.fromBoxes}</td>
