@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   cancelOrder,
+  deleteOrder,
   getOrderWithDetails,
   listBoxes,
   listProducts,
@@ -47,6 +48,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.action === "restore") {
       await restoreOrder(params.id);
       return NextResponse.json({ ok: true });
+    }
+    if (body.action === "delete") {
+      await deleteOrder(params.id);
+      return NextResponse.json({ ok: true, deleted: true });
     }
 
     const { status, payment_status, fulfillment_type, fulfillment_date, notes, items } = body;

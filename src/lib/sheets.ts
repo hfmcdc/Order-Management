@@ -259,6 +259,89 @@ export async function updateRow<T extends Record<string, any>>(
 }
 
 /**
+ * Permanently delete the row identified by its ID from a tab. Used sparingly
+ * — most of the app prefers soft-deletes (status = Cancelled) per the
+ * original design, but the business owner asked for a real delete option
+ * on orders as well, so this exists as an explicit, deliberate action.
+ */
+export async function deleteRow(tab: SheetTab, id: string): Promise<void> {
+  const client = getClient();
+  const columns = SHEET_COLUMNS[tab];
+  const idColumn = ID_COLUMN[tab];
+
+  const allRows = await readSheetRaw(tab);
+  const rowIndex = allRows.findIndex((row) => {
+    const record = rowToObject<any>(row, columns);
+    return record[idColumn] === id;
+  });
+  if (rowIndex === -1) return; // already gone — nothing to do
+
+  const sheetIdNumeric = await getTabSheetId(tab);
+  await withErrorHandling(
+    () =>
+      client.spreadsheets.batchUpdate({
+        spreadsheetId: getSheetId(),
+        requestBody: {
+          requests: [
+            {
+              deleteDimension: {
+                range: {
+                  sheetId: sheetIdNumeric,
+                  dimension: "ROWS",
+                  startIndex: rowIndex + 1, // +1 for header row
+                  endIndex: rowIndex + 2,
+                },
+              },
+            },
+          ],
+        },
+      }),
+    `Failed to delete ${tab} row ${id}`
+  );
+}
+
+/** Delete every row in a tab matching a predicate — used to clean up an
+ * order's line items when the order itself is permanently deleted. */
+export async function deleteRowsWhere(
+  tab: SheetTab,
+  predicate: (record: any) => boolean
+): Promise<void> {
+  const client = getClient();
+  const columns = SHEET_COLUMNS[tab];
+
+  const allRows = await readSheetRaw(tab);
+  const rowsToDelete: number[] = [];
+  allRows.forEach((row, idx) => {
+    const record = rowToObject<any>(row, columns);
+    if (predicate(record)) rowsToDelete.push(idx);
+  });
+  if (rowsToDelete.length === 0) return;
+
+  const sheetIdNumeric = await getTabSheetId(tab);
+  const requests = rowsToDelete
+    .sort((a, b) => b - a)
+    .map((idx) => ({
+      deleteDimension: {
+        range: {
+          sheetId: sheetIdNumeric,
+          dimension: "ROWS",
+          startIndex: idx + 1,
+          endIndex: idx + 2,
+        },
+      },
+    }));
+
+  await withErrorHandling(
+    () =>
+      client.spreadsheets.batchUpdate({
+        spreadsheetId: getSheetId(),
+        requestBody: { requests },
+      }),
+    `Failed to delete rows from ${tab}`
+  );
+}
+
+/**
  * Replace all OrderItems belonging to an order: delete the old lines and
  * append the new ones. Used when editing an order's contents. This targets
  * only the affected rows (via a batch delete of specific row indices), not

@@ -6,7 +6,7 @@
 // return JSON.
 // ---------------------------------------------------------------------------
 
-import { appendRow, appendRows, readSheet, replaceOrderItems, updateRow } from "./sheets";
+import { appendRow, appendRows, deleteRow, deleteRowsWhere, readSheet, replaceOrderItems, updateRow } from "./sheets";
 import {
   Box,
   BoxContent,
@@ -235,6 +235,17 @@ export async function cancelOrder(orderId: string): Promise<void> {
 
 export async function restoreOrder(orderId: string): Promise<void> {
   await updateOrderStatus(orderId, "New");
+}
+
+/**
+ * Permanently remove an order and its line items. Unlike cancelOrder, this
+ * cannot be undone. Offered as an explicit alternative to cancelling, for
+ * when an order was a genuine mistake rather than something to keep a
+ * record of.
+ */
+export async function deleteOrder(orderId: string): Promise<void> {
+  await deleteRowsWhere("OrderItems", (item) => item.order_id === orderId);
+  await deleteRow("Orders", orderId);
 }
 
 /**

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { ProductionRow } from "@/lib/types";
+import { BUSINESS_NAME } from "@/lib/business-info";
 
 interface ProductionResponse {
   rows: ProductionRow[];
@@ -22,6 +23,11 @@ export default function ProductionPage() {
 
   return (
     <div className="flex flex-col gap-5 pb-8">
+      <div className="hidden print:block mb-2">
+        <h1 className="font-display font-700 text-xl text-maroon-900">{BUSINESS_NAME.toUpperCase()}</h1>
+        <p className="text-sm text-maroon-800">Production list — {date || "all upcoming"}</p>
+      </div>
+
       <header className="no-print flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display font-700 text-2xl text-maroon-800">Production</h1>

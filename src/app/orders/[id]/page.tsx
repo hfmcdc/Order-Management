@@ -7,6 +7,8 @@ import { OrderStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
 import { OrderWithDetails, OrderItem, ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/types";
 import { useState } from "react";
 import EditOrderItems from "@/components/EditOrderItems";
+import { buildInvoicePdf } from "@/lib/invoice-pdf";
+import { BUSINESS_ADDRESS, BUSINESS_NAME, BUSINESS_PHONE } from "@/lib/business-info";
 
 type NamedOrderItem = OrderItem & { name: string };
 type OrderDetail = Omit<OrderWithDetails, "items"> & { items: NamedOrderItem[] };
@@ -20,6 +22,8 @@ export default function OrderDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [editingItems, setEditingItems] = useState(false);
+  const [showCancelChoice, setShowCancelChoice] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   async function patchOrder(body: Record<string, any>) {
     setBusy(true);
@@ -32,6 +36,10 @@ export default function OrderDetailPage() {
       });
       const result = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(result.error);
+      if (body.action === "delete") {
+        router.push("/orders");
+        return;
+      }
       refresh();
     } catch (err: any) {
       setActionError(err.message ?? "Unable to update the order. Please try again.");
@@ -46,22 +54,59 @@ export default function OrderDetailPage() {
 
   const order = data.order;
 
-  function shareOnWhatsApp() {
-    const lines = [
-      "Vaiga Sweets & Snacks",
-      "Diwali 2026",
-      "",
-      `Order: ${order.order_id}`,
-      `Customer: ${order.customer?.name ?? ""}`,
-      "",
-      ...order.items.map((item) => `${item.name} × ${item.quantity}`),
-      "",
-      `Total: ₹${order.total}`,
-    ];
-    const text = encodeURIComponent(lines.join("\n"));
-    const phone = order.customer?.phone?.replace(/\D/g, "");
-    const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
-    window.open(url, "_blank");
+  async function shareOnWhatsApp() {
+    setSharing(true);
+    setActionError(null);
+    try {
+      const pdfFile = await buildInvoicePdf(order);
+      const shareText = `${BUSINESS_NAME} — Order ${order.order_id} for ${order.customer?.name ?? ""}, total ₹${order.total}`;
+
+      // Mobile browsers (Android Chrome, iOS Safari) support sharing files
+      // directly — this opens the native share sheet, where WhatsApp (and
+      // picking which contact/group to send to) is handled by the OS/app
+      // itself, not by this website.
+      const canShareFile =
+        typeof navigator !== "undefined" &&
+        "share" in navigator &&
+        "canShare" in navigator &&
+        (navigator as any).canShare?.({ files: [pdfFile] });
+
+      if (canShareFile) {
+        await (navigator as any).share({
+          files: [pdfFile],
+          title: `Vaiga Order ${order.order_id}`,
+          text: shareText,
+        });
+        return;
+      }
+
+      // Desktop/laptop browsers can't attach files into WhatsApp Web via a
+      // link — no website can do that, it's a WhatsApp Web restriction, not
+      // something specific to this app. Best available flow: download the
+      // PDF for them, then open WhatsApp Web with the text pre-filled so
+      // they just need to attach the file that was just downloaded.
+      const blobUrl = URL.createObjectURL(pdfFile);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = pdfFile.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+
+      const phone = order.customer?.phone?.replace(/\D/g, "");
+      const text = encodeURIComponent(shareText);
+      const url = phone
+        ? `https://web.whatsapp.com/send?phone=${phone}&text=${text}`
+        : `https://web.whatsapp.com/send?text=${text}`;
+      window.open(url, "_blank");
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        setActionError("Couldn't prepare the WhatsApp share. Please try again.");
+      }
+    } finally {
+      setSharing(false);
+    }
   }
 
   if (editingItems) {
@@ -90,8 +135,9 @@ export default function OrderDetailPage() {
     <div className="flex flex-col gap-6 pb-8">
       {/* Print-only invoice — hidden on screen, shown only when printing */}
       <div className="hidden print:block">
-        <h1 className="font-display font-700 text-2xl text-maroon-900">VAIGA SWEETS &amp; SNACKS</h1>
-        <p className="text-sm text-maroon-800">Diwali 2026</p>
+        <h1 className="font-display font-700 text-2xl text-maroon-900">{BUSINESS_NAME.toUpperCase()}</h1>
+        <p className="text-sm text-maroon-800">{BUSINESS_ADDRESS}</p>
+        <p className="text-sm text-maroon-800">Phone: {BUSINESS_PHONE}</p>
         <hr className="my-3 border-maroon-900/30" />
         <p><strong>Order:</strong> {order.order_id}</p>
         <p><strong>Customer:</strong> {order.customer?.name}</p>
@@ -137,9 +183,10 @@ export default function OrderDetailPage() {
             </button>
             <button
               onClick={shareOnWhatsApp}
-              className="touch-target rounded-full bg-leaf-500 text-white text-sm font-medium px-4"
+              disabled={sharing}
+              className="touch-target rounded-full bg-leaf-500 text-white text-sm font-medium px-4 disabled:opacity-60"
             >
-              WhatsApp
+              {sharing ? "Preparing…" : "WhatsApp"}
             </button>
           </div>
         </div>
@@ -248,11 +295,7 @@ export default function OrderDetailPage() {
             ) : (
               <button
                 disabled={busy}
-                onClick={() => {
-                  if (confirm("Cancel this order? It will be removed from production totals.")) {
-                    patchOrder({ action: "cancel" });
-                  }
-                }}
+                onClick={() => setShowCancelChoice(true)}
                 className="touch-target rounded-full bg-maroon-900/10 text-maroon-800 font-medium px-5"
               >
                 Cancel order
@@ -263,6 +306,44 @@ export default function OrderDetailPage() {
 
         {actionError && <ErrorState message={actionError} />}
       </div>
+
+      {showCancelChoice && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
+          <div className="w-full md:w-96 rounded-card bg-white p-5 flex flex-col gap-3">
+            <h3 className="font-display font-700 text-lg text-maroon-800">What should happen to this order?</h3>
+            <p className="text-sm text-maroon-700/70">
+              You can mark it as Cancelled (kept in your records, excluded from production) or delete it
+              permanently (can&apos;t be undone).
+            </p>
+            <button
+              disabled={busy}
+              onClick={() => {
+                setShowCancelChoice(false);
+                patchOrder({ action: "cancel" });
+              }}
+              className="touch-target rounded-full bg-maroon-800 text-white font-medium"
+            >
+              Mark as Cancelled
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => {
+                setShowCancelChoice(false);
+                patchOrder({ action: "delete" });
+              }}
+              className="touch-target rounded-full bg-white border border-red-300 text-red-600 font-medium"
+            >
+              Delete permanently
+            </button>
+            <button
+              onClick={() => setShowCancelChoice(false)}
+              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
+            >
+              Never mind
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
