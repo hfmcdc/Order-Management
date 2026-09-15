@@ -9,7 +9,7 @@ import { useState } from "react";
 import EditOrderItems from "@/components/EditOrderItems";
 
 type NamedOrderItem = OrderItem & { name: string };
-type OrderDetail = OrderWithDetails & { items: NamedOrderItem[] };
+type OrderDetail = Omit<OrderWithDetails, "items"> & { items: NamedOrderItem[] };
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
