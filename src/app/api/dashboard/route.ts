@@ -58,6 +58,27 @@ export async function GET() {
     }
     const totalReceived = cashReceived + upiReceived + unspecifiedReceived;
 
+    // Money owed: delivered orders that still aren't marked Paid. This is
+    // the "we gave them the sweets but haven't collected yet" list — worth
+    // surfacing separately from ordinary Pending orders that haven't been
+    // delivered yet, since those aren't overdue in the same way.
+    const unpaidAfterDelivery = activeOrders
+      .filter((o) => o.status === "Delivered" && o.payment_status !== "Paid")
+      .map((order) => {
+        const items = orderItems.filter((i) => i.order_id === order.order_id);
+        const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
+        const total = computeOrderWithDetails(order, items, customer, boxContents).total;
+        return {
+          order_id: order.order_id,
+          customerName: customer?.name ?? "Unknown customer",
+          total,
+          payment_status: order.payment_status,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    const pendingAmount = unpaidAfterDelivery.reduce((sum, o) => sum + o.total, 0);
+
     // "Total items" everywhere in this app means the same thing: individual
     // units ordered, PLUS the units contained inside any boxes — i.e. the
     // actual count of sweets/snacks, not a count of order lines. Boxes are
@@ -106,6 +127,8 @@ export async function GET() {
         upi: upiReceived,
         unspecified: unspecifiedReceived,
         total: totalReceived,
+        pendingAmount,
+        pendingOrders: unpaidAfterDelivery,
       },
       production,
       recentOrders,

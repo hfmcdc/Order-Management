@@ -30,6 +30,8 @@ interface DashboardResponse {
     upi: number;
     unspecified: number;
     total: number;
+    pendingAmount: number;
+    pendingOrders: { order_id: string; customerName: string; total: number; payment_status: string }[];
   };
   production: ProductionRow[];
   recentOrders: RecentOrder[];
@@ -108,6 +110,28 @@ export default function DashboardPage() {
               </p>
             )}
           </section>
+
+          {/* Pending payment — delivered but not yet paid */}
+          {data.payments.pendingOrders.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h2 className="font-display font-600 text-lg text-maroon-800">
+                Pending payment <span className="text-maroon-700/50 font-normal text-sm">(delivered, not yet paid)</span>
+              </h2>
+              <SummaryCard label="Amount owed" value={`₹${data.payments.pendingAmount}`} />
+              <div className="rounded-card border border-clay-300/70 bg-white divide-y divide-clay-300/50">
+                {data.payments.pendingOrders.map((o) => (
+                  <Link
+                    key={o.order_id}
+                    href={`/orders/${o.order_id}`}
+                    className="px-4 py-2.5 flex items-center justify-between text-sm hover:bg-clay-100/40"
+                  >
+                    <span className="text-maroon-800">{o.customerName}</span>
+                    <span className="font-semibold text-maroon-800">₹{o.total}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Recent orders */}
