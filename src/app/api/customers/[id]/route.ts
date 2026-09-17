@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllData, updateCustomer } from "@/lib/repo";
+import { deleteCustomer, getAllData, updateCustomer } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 import { computeCustomerTotals, computeOrderWithDetails } from "@/lib/calculations";
 
@@ -46,6 +46,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(body.phone !== undefined ? { phone: body.phone.trim() } : {}),
       ...(body.address !== undefined ? { address: body.address } : {}),
     });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await deleteCustomer(params.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return handleApiError(err);

@@ -4,11 +4,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState } from "@/components/StateViews";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
-import { OrderWithDetails, OrderItem, ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/types";
+import { OrderWithDetails, OrderItem, ORDER_STATUSES, PAYMENT_STATUSES, PaymentMethod } from "@/lib/types";
 import { useState } from "react";
 import EditOrderItems from "@/components/EditOrderItems";
 import { buildInvoicePdf } from "@/lib/invoice-pdf";
 import { BUSINESS_ADDRESS, BUSINESS_NAME, BUSINESS_PHONE } from "@/lib/business-info";
+import { publicOrderCode } from "@/lib/public-order-code";
 
 type NamedOrderItem = OrderItem & { name: string };
 type OrderDetail = Omit<OrderWithDetails, "items"> & { items: NamedOrderItem[] };
@@ -24,6 +25,8 @@ export default function OrderDetailPage() {
   const [editingItems, setEditingItems] = useState(false);
   const [showCancelChoice, setShowCancelChoice] = useState(false);
   const [sharing, setSharing] = useState(false);
+  // "ask-paid" = "was this paid?" step; "ask-method" = "cash or UPI?" step
+  const [deliveredPrompt, setDeliveredPrompt] = useState<"ask-paid" | "ask-method" | null>(null);
 
   async function patchOrder(body: Record<string, any>) {
     setBusy(true);
@@ -59,7 +62,7 @@ export default function OrderDetailPage() {
     setActionError(null);
     try {
       const pdfFile = await buildInvoicePdf(order);
-      const shareText = `${BUSINESS_NAME} — Order ${order.order_id} for ${order.customer?.name ?? ""}, total ₹${order.total}`;
+      const shareText = `${BUSINESS_NAME} — Order ${publicOrderCode(order.order_id)} for ${order.customer?.name ?? ""}, total ₹${order.total}`;
 
       // Mobile browsers (Android Chrome, iOS Safari) support sharing files
       // directly — this opens the native share sheet, where WhatsApp (and
@@ -74,7 +77,7 @@ export default function OrderDetailPage() {
       if (canShareFile) {
         await (navigator as any).share({
           files: [pdfFile],
-          title: `Vaiga Order ${order.order_id}`,
+          title: `Vaiga Order ${publicOrderCode(order.order_id)}`,
           text: shareText,
         });
         return;
@@ -109,6 +112,24 @@ export default function OrderDetailPage() {
     }
   }
 
+  function handleStatusClick(s: string) {
+    if (s === "Delivered") {
+      setDeliveredPrompt("ask-paid");
+      return;
+    }
+    patchOrder({ status: s });
+  }
+
+  function markDeliveredUnpaid() {
+    setDeliveredPrompt(null);
+    patchOrder({ status: "Delivered" });
+  }
+
+  function markDeliveredPaid(method: PaymentMethod) {
+    setDeliveredPrompt(null);
+    patchOrder({ status: "Delivered", payment_status: "Paid", payment_method: method });
+  }
+
   if (editingItems) {
     return (
       <div className="flex flex-col gap-4 pb-8">
@@ -139,7 +160,7 @@ export default function OrderDetailPage() {
         <p className="text-sm text-maroon-800">{BUSINESS_ADDRESS}</p>
         <p className="text-sm text-maroon-800">Phone: {BUSINESS_PHONE}</p>
         <hr className="my-3 border-maroon-900/30" />
-        <p><strong>Order:</strong> {order.order_id}</p>
+        <p><strong>Order:</strong> {publicOrderCode(order.order_id)}</p>
         <p><strong>Customer:</strong> {order.customer?.name}</p>
         <p><strong>Phone:</strong> {order.customer?.phone}</p>
         <p><strong>Date:</strong> {order.order_date}</p>
@@ -210,6 +231,7 @@ export default function OrderDetailPage() {
           <Info label="Individual items" value={String(order.totalIndividualItems)} />
           <Info label="Total items" value={String(order.totalItems)} />
           <Info label="Order total" value={`₹${order.total}`} />
+          {order.payment_method && <Info label="Paid via" value={order.payment_method} />}
         </section>
 
         <section className="flex flex-col gap-2">
@@ -253,7 +275,7 @@ export default function OrderDetailPage() {
               <button
                 key={s}
                 disabled={busy}
-                onClick={() => patchOrder({ status: s })}
+                onClick={() => handleStatusClick(s)}
                 className={`touch-target px-4 rounded-full text-sm font-medium border ${
                   order.status === s
                     ? "bg-maroon-800 text-white border-maroon-800"
@@ -306,6 +328,63 @@ export default function OrderDetailPage() {
 
         {actionError && <ErrorState message={actionError} />}
       </div>
+
+      {deliveredPrompt === "ask-paid" && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
+          <div className="w-full md:w-96 rounded-card bg-white p-5 flex flex-col gap-3">
+            <h3 className="font-display font-700 text-lg text-maroon-800">Was this order paid?</h3>
+            <p className="text-sm text-maroon-700/70">You&apos;re marking {order.order_id} as Delivered.</p>
+            <button
+              disabled={busy}
+              onClick={() => setDeliveredPrompt("ask-method")}
+              className="touch-target rounded-full bg-leaf-500 text-white font-medium"
+            >
+              Paid
+            </button>
+            <button
+              disabled={busy}
+              onClick={markDeliveredUnpaid}
+              className="touch-target rounded-full bg-white border border-clay-300 text-maroon-800 font-medium"
+            >
+              Not yet
+            </button>
+            <button
+              onClick={() => setDeliveredPrompt(null)}
+              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
+            >
+              Never mind
+            </button>
+          </div>
+        </div>
+      )}
+
+      {deliveredPrompt === "ask-method" && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
+          <div className="w-full md:w-96 rounded-card bg-white p-5 flex flex-col gap-3">
+            <h3 className="font-display font-700 text-lg text-maroon-800">Paid by cash or UPI?</h3>
+            <button
+              disabled={busy}
+              onClick={() => markDeliveredPaid("Cash")}
+              className="touch-target rounded-full bg-maroon-800 text-white font-medium"
+            >
+              Cash
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => markDeliveredPaid("UPI")}
+              className="touch-target rounded-full bg-maroon-800 text-white font-medium"
+            >
+              UPI
+            </button>
+            <button
+              onClick={() => setDeliveredPrompt(null)}
+              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
+            >
+              Never mind
+            </button>
+          </div>
+        </div>
+      )}
 
       {showCancelChoice && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">

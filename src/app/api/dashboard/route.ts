@@ -37,6 +37,27 @@ export async function GET() {
       return sum + computeOrderWithDetails(order, items, customer, boxContents).total;
     }, 0);
 
+    // Payments actually received so far, split by method. Distinct from
+    // "Order value" above (which is the value of ALL active orders
+    // regardless of payment status) — this is money in hand. Orders marked
+    // Paid before this feature existed (or via the old Pending/Partial/Paid
+    // buttons, which don't ask for a method) have no payment_method — those
+    // are counted in the total but kept out of both Cash and UPI rather
+    // than being guessed into either one.
+    let cashReceived = 0;
+    let upiReceived = 0;
+    let unspecifiedReceived = 0;
+    for (const order of activeOrders) {
+      if (order.payment_status !== "Paid") continue;
+      const items = orderItems.filter((i) => i.order_id === order.order_id);
+      const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
+      const total = computeOrderWithDetails(order, items, customer, boxContents).total;
+      if (order.payment_method === "Cash") cashReceived += total;
+      else if (order.payment_method === "UPI") upiReceived += total;
+      else unspecifiedReceived += total;
+    }
+    const totalReceived = cashReceived + upiReceived + unspecifiedReceived;
+
     // "Total items" everywhere in this app means the same thing: individual
     // units ordered, PLUS the units contained inside any boxes — i.e. the
     // actual count of sweets/snacks, not a count of order lines. Boxes are
@@ -79,6 +100,12 @@ export async function GET() {
         totalIndividualItems,
         totalItems: totalIndividualItems + totalItemsFromBoxes,
         totalOrderValue,
+      },
+      payments: {
+        cash: cashReceived,
+        upi: upiReceived,
+        unspecified: unspecifiedReceived,
+        total: totalReceived,
       },
       production,
       recentOrders,

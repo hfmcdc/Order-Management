@@ -54,10 +54,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ ok: true, deleted: true });
     }
 
-    const { status, payment_status, fulfillment_type, fulfillment_date, notes, items } = body;
+    const { status, payment_status, payment_method, fulfillment_type, fulfillment_date, notes, items } =
+      body;
     await updateOrderDetails(
       params.id,
-      { status, payment_status, fulfillment_type, fulfillment_date, notes },
+      { status, payment_status, payment_method, fulfillment_type, fulfillment_date, notes },
       items
     );
     return NextResponse.json({ ok: true });

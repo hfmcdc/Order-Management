@@ -28,6 +28,20 @@ export default function CustomerDetailPage() {
 
   const { totals, orders } = data;
 
+  async function deleteCustomerNow() {
+    if (
+      !confirm(
+        `Delete ${totals.customer.name} permanently? Their past orders will remain but will show as "Unknown customer". This can't be undone.`
+      )
+    ) {
+      return;
+    }
+    const res = await fetch(`/api/customers/${params.id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.push("/customers");
+    }
+  }
+
   function startEditing() {
     setForm({
       name: totals.customer.name,
@@ -85,6 +99,12 @@ export default function CustomerDetailPage() {
             className="touch-target text-sm text-marigold-600 font-medium px-2 shrink-0"
           >
             Edit
+          </button>
+          <button
+            onClick={deleteCustomerNow}
+            className="touch-target text-sm text-red-600 font-medium px-2 shrink-0"
+          >
+            Delete
           </button>
         </header>
       ) : (

@@ -119,6 +119,7 @@ async function main() {
       fulfillment_date: today,
       status: "New",
       payment_status: "Pending",
+      payment_method: "",
       notes: "[SAMPLE] seeded order",
       created_at: timestamp,
       updated_at: timestamp,

@@ -73,6 +73,22 @@ export default function BoxesPage() {
     refresh();
   }
 
+  async function deleteBox(box: Box) {
+    if (
+      !confirm(
+        `Delete "${box.name}" permanently? Past orders will still show their own record, but this box will no longer appear anywhere to select.`
+      )
+    ) {
+      return;
+    }
+    await fetch("/api/boxes", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ box_id: box.box_id }),
+    });
+    refresh();
+  }
+
   return (
     <div className="flex flex-col gap-4 pb-8">
       <header className="flex items-center justify-between">
@@ -189,12 +205,20 @@ export default function BoxesPage() {
                     </p>
                     <p className="text-sm text-maroon-700/60">₹{box.price}</p>
                   </div>
-                  <button
-                    onClick={() => toggleActive(box)}
-                    className="text-xs text-marigold-600 font-medium touch-target px-2"
-                  >
-                    {box.active ? "Disable" : "Enable"}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => toggleActive(box)}
+                      className="text-xs text-marigold-600 font-medium touch-target px-2"
+                    >
+                      {box.active ? "Disable" : "Enable"}
+                    </button>
+                    <button
+                      onClick={() => deleteBox(box)}
+                      className="text-xs text-red-600 font-medium touch-target px-2"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
                 {boxContents.length > 0 && (
                   <ul className="mt-2 text-sm text-maroon-700/70 flex flex-wrap gap-x-4 gap-y-1">

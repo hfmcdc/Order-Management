@@ -21,6 +21,9 @@ export const ORDER_STATUSES: OrderStatus[] = [
 export type PaymentStatus = "Pending" | "Partial" | "Paid";
 export const PAYMENT_STATUSES: PaymentStatus[] = ["Pending", "Partial", "Paid"];
 
+export type PaymentMethod = "Cash" | "UPI" | "";
+export const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "UPI"];
+
 export type FulfillmentType = "Pickup" | "Delivery";
 
 export type OrderItemType = "box" | "product";
@@ -64,6 +67,7 @@ export interface Order {
   fulfillment_date: string; // ISO date the order is needed by
   status: OrderStatus;
   payment_status: PaymentStatus;
+  payment_method: PaymentMethod; // set when payment_status is Paid
   notes: string;
   created_at: string;
   updated_at: string;

@@ -52,6 +52,22 @@ export default function ProductsPage() {
     refresh();
   }
 
+  async function deleteProduct(product: Product) {
+    if (
+      !confirm(
+        `Delete "${product.name}" permanently? Past orders will still show their own record, but this product will no longer appear anywhere to select.`
+      )
+    ) {
+      return;
+    }
+    await fetch("/api/products", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: product.product_id }),
+    });
+    refresh();
+  }
+
   return (
     <div className="flex flex-col gap-4 pb-8">
       <header className="flex items-center justify-between">
@@ -158,6 +174,15 @@ export default function ProductsPage() {
                     className="text-xs text-marigold-600 font-medium"
                   >
                     {p.active ? "Disable" : "Enable"}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteProduct(p);
+                    }}
+                    className="text-xs text-red-600 font-medium"
+                  >
+                    Delete
                   </button>
                   <span className="text-maroon-700/40">{expanded === p.product_id ? "▲" : "▼"}</span>
                 </div>

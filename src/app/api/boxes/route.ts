@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBox, listBoxContents, listBoxes, updateBox } from "@/lib/repo";
+import { createBox, deleteBox, listBoxContents, listBoxes, updateBox } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +51,19 @@ export async function PATCH(req: NextRequest) {
     // you need to change contents later, delete and recreate the box, or
     // extend this route to diff/replace BoxContents rows the same way
     // replaceOrderItems does for orders.
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const body = await req.json();
+    if (!body?.box_id) {
+      return NextResponse.json({ error: "box_id is required." }, { status: 400 });
+    }
+    await deleteBox(body.box_id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return handleApiError(err);

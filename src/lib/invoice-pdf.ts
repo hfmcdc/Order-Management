@@ -1,4 +1,5 @@
 import { BUSINESS_ADDRESS, BUSINESS_NAME, BUSINESS_PHONE } from "./business-info";
+import { publicOrderCode } from "./public-order-code";
 
 interface InvoiceOrder {
   order_id: string;
@@ -43,7 +44,7 @@ export async function buildInvoicePdf(order: InvoiceOrder): Promise<File> {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor("#000000");
-  doc.text(`Order: ${order.order_id}`, marginX, y);
+  doc.text(`Order: ${publicOrderCode(order.order_id)}`, marginX, y);
   y += 16;
   doc.setFont("helvetica", "normal");
   doc.text(`Customer: ${order.customer?.name ?? ""}`, marginX, y);
@@ -81,5 +82,5 @@ export async function buildInvoicePdf(order: InvoiceOrder): Promise<File> {
   doc.text(`Total: Rs.${order.total}`, 547, y, { align: "right" });
 
   const blob = doc.output("blob");
-  return new File([blob], `vaiga-${order.order_id}.pdf`, { type: "application/pdf" });
+  return new File([blob], `vaiga-${publicOrderCode(order.order_id)}.pdf`, { type: "application/pdf" });
 }

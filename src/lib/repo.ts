@@ -78,6 +78,13 @@ export async function updateCustomer(
   await updateRow<Customer>("Customers", id, { ...patch, updated_at: nowIso() });
 }
 
+/** Permanently delete a customer. Past orders that reference them keep
+ * their own record, but will show as "Unknown customer" once the customer
+ * itself is gone. */
+export async function deleteCustomer(id: string): Promise<void> {
+  await deleteRow("Customers", id);
+}
+
 export async function searchCustomers(query: string): Promise<Customer[]> {
   const customers = await listCustomers();
   const q = query.trim().toLowerCase();
@@ -102,6 +109,13 @@ export async function createProduct(input: Omit<Product, "product_id">): Promise
 
 export async function updateProduct(id: string, patch: Partial<Product>): Promise<void> {
   return updateRow<Product>("Products", id, patch);
+}
+
+/** Permanently delete a product. Past orders that reference it keep their
+ * stored name/price snapshot where possible, but will show a generic
+ * fallback name once the product itself is gone. */
+export async function deleteProduct(id: string): Promise<void> {
+  await deleteRow("Products", id);
 }
 
 // ---- Boxes ----
@@ -130,6 +144,14 @@ export async function createBox(
 
 export async function updateBox(id: string, patch: Partial<Box>): Promise<void> {
   return updateRow<Box>("Boxes", id, patch);
+}
+
+/** Permanently delete a box and its contents definition. Past orders that
+ * used it keep their own item records, but will show a generic fallback
+ * name once the box itself is gone. */
+export async function deleteBox(id: string): Promise<void> {
+  await deleteRowsWhere("BoxContents", (bc) => bc.box_id === id);
+  await deleteRow("Boxes", id);
 }
 
 // ---- Orders ----
@@ -172,6 +194,7 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
     fulfillment_date: input.fulfillment_date,
     status: "New",
     payment_status: "Pending",
+    payment_method: "",
     notes: input.notes ?? "",
     created_at: timestamp,
     updated_at: timestamp,
@@ -207,7 +230,10 @@ export async function updateOrderPaymentStatus(
 export async function updateOrderDetails(
   orderId: string,
   patch: Partial<
-    Pick<Order, "fulfillment_type" | "fulfillment_date" | "notes" | "status" | "payment_status">
+    Pick<
+      Order,
+      "fulfillment_type" | "fulfillment_date" | "notes" | "status" | "payment_status" | "payment_method"
+    >
   >,
   newItems?: NewOrderItemInput[]
 ): Promise<void> {

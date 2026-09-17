@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createProduct, listProducts, updateProduct } from "@/lib/repo";
+import { createProduct, deleteProduct, listProducts, updateProduct } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +40,19 @@ export async function PATCH(req: NextRequest) {
     }
     const { product_id, ...patch } = body;
     await updateProduct(product_id, patch);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const body = await req.json();
+    if (!body?.product_id) {
+      return NextResponse.json({ error: "product_id is required." }, { status: 400 });
+    }
+    await deleteProduct(body.product_id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return handleApiError(err);

@@ -45,6 +45,7 @@ export const SHEET_COLUMNS: Record<SheetTab, string[]> = {
     "notes",
     "created_at",
     "updated_at",
+    "payment_method",
   ],
   OrderItems: [
     "order_item_id",

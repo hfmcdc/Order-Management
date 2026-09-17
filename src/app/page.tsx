@@ -25,6 +25,12 @@ interface DashboardResponse {
     totalItems: number;
     totalOrderValue: number;
   };
+  payments: {
+    cash: number;
+    upi: number;
+    unspecified: number;
+    total: number;
+  };
   production: ProductionRow[];
   recentOrders: RecentOrder[];
   topProducts: ProductionRow[];
@@ -85,6 +91,22 @@ export default function DashboardPage() {
             >
               Production
             </Link>
+          </section>
+
+          {/* Payments received */}
+          <section className="flex flex-col gap-2">
+            <h2 className="font-display font-600 text-lg text-maroon-800">Payments received</h2>
+            <div className="grid grid-cols-3 gap-3">
+              <SummaryCard label="Cash" value={`₹${data.payments.cash}`} />
+              <SummaryCard label="UPI" value={`₹${data.payments.upi}`} />
+              <SummaryCard label="Total received" value={`₹${data.payments.total}`} accent />
+            </div>
+            {data.payments.unspecified > 0 && (
+              <p className="text-xs text-maroon-700/60">
+                Includes ₹{data.payments.unspecified} marked Paid without a recorded method (from
+                before this was tracked, or via the Payment buttons directly).
+              </p>
+            )}
           </section>
 
           <div className="grid md:grid-cols-2 gap-6">
