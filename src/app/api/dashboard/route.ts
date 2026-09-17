@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAllData } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
-import { computeOrderTotals, computeProductionRows, isOrderActive } from "@/lib/calculations";
+import { computeOrderWithDetails, computeProductionRows, isOrderActive } from "@/lib/calculations";
 
 // Always hit Google Sheets fresh — never let Vercel/Next.js cache this
 // route's response, or new orders/edits would appear to vanish.
@@ -33,21 +33,29 @@ export async function GET() {
 
     const totalOrderValue = activeOrders.reduce((sum, order) => {
       const items = orderItems.filter((i) => i.order_id === order.order_id);
-      return sum + computeOrderTotals(items).total;
+      const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
+      return sum + computeOrderWithDetails(order, items, customer, boxContents).total;
     }, 0);
 
+    // "Total items" everywhere in this app means the same thing: individual
+    // units ordered, PLUS the units contained inside any boxes — i.e. the
+    // actual count of sweets/snacks, not a count of order lines. Boxes are
+    // reported as their own separate number rather than folded into this,
+    // so "1 box + 2 individual items" isn't ambiguously called "3 items"
+    // in one place and "4 items" (with box contents expanded) in another.
     const recentOrders = [...activeOrders]
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .slice(0, 5)
       .map((order) => {
         const items = orderItems.filter((i) => i.order_id === order.order_id);
-        const totals = computeOrderTotals(items);
-        const customer = customers.find((c) => c.customer_id === order.customer_id);
+        const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
+        const details = computeOrderWithDetails(order, items, customer, boxContents);
         return {
           order_id: order.order_id,
           customerName: customer?.name ?? "Unknown customer",
-          itemCount: totals.totalBoxes + totals.totalIndividualItems,
-          total: totals.total,
+          boxCount: details.totalBoxes,
+          itemCount: details.totalItems,
+          total: details.total,
           created_at: order.created_at,
         };
       });

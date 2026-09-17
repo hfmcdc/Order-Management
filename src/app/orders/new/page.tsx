@@ -29,6 +29,7 @@ export default function NewOrderPage() {
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", address: "" });
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   // Order lines
   const [boxQuantities, setBoxQuantities] = useState<Record<string, number>>({});
@@ -64,6 +65,8 @@ export default function NewOrderPage() {
       setSaveError("Please enter a name.");
       return;
     }
+    if (creatingCustomer) return; // guard against double-tap creating duplicates
+    setCreatingCustomer(true);
     try {
       const res = await fetch("/api/customers", {
         method: "POST",
@@ -72,10 +75,15 @@ export default function NewOrderPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
+      if (!body.customer) {
+        throw new Error("Something went wrong creating the customer. Please try again.");
+      }
       setSelectedCustomer(body.customer);
       setShowNewCustomerForm(false);
     } catch (err: any) {
-      setSaveError(err.message ?? "Could not create customer.");
+      setSaveError(err.message ?? "Could not create customer. Please check your connection and try again.");
+    } finally {
+      setCreatingCustomer(false);
     }
   }
 
@@ -232,33 +240,53 @@ export default function NewOrderPage() {
               </button>
             ) : (
               <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
-                <input
-                  placeholder="Name"
-                  value={newCustomer.name}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                  className="touch-target rounded-card border border-clay-300 px-4"
-                />
-                <input
-                  placeholder="Phone (optional)"
-                  value={newCustomer.phone}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                  className="touch-target rounded-card border border-clay-300 px-4"
-                />
-                <input
-                  placeholder="Address (optional)"
-                  value={newCustomer.address}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
-                  className="touch-target rounded-card border border-clay-300 px-4"
-                />
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="new-customer-name" className="text-xs font-medium text-maroon-700/70">
+                    Name
+                  </label>
+                  <input
+                    id="new-customer-name"
+                    placeholder="Customer name"
+                    value={newCustomer.name}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                    className="touch-target rounded-card border border-clay-300 px-4"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="new-customer-phone" className="text-xs font-medium text-maroon-700/70">
+                    Phone (optional)
+                  </label>
+                  <input
+                    id="new-customer-phone"
+                    placeholder="Phone number"
+                    value={newCustomer.phone}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                    className="touch-target rounded-card border border-clay-300 px-4"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="new-customer-address" className="text-xs font-medium text-maroon-700/70">
+                    Address (optional)
+                  </label>
+                  <input
+                    id="new-customer-address"
+                    placeholder="Address"
+                    value={newCustomer.address}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                    className="touch-target rounded-card border border-clay-300 px-4"
+                  />
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={createCustomerNow}
-                    className="touch-target flex-1 rounded-full bg-marigold-500 text-white font-medium"
+                    disabled={creatingCustomer}
+                    className="touch-target flex-1 rounded-full bg-marigold-500 text-white font-medium disabled:opacity-60"
                   >
-                    Save customer
+                    {creatingCustomer ? "Saving…" : "Save customer"}
                   </button>
                   <button
                     onClick={() => setShowNewCustomerForm(false)}
+                    disabled={creatingCustomer}
                     className="touch-target px-4 rounded-full bg-clay-100 text-maroon-800 font-medium"
                   >
                     Cancel

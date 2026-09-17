@@ -1,24 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllData, getCustomerTotals, updateCustomer } from "@/lib/repo";
+import { getAllData, updateCustomer } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
-import { computeOrderWithDetails } from "@/lib/calculations";
+import { computeCustomerTotals, computeOrderWithDetails } from "@/lib/calculations";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const totals = await getCustomerTotals(params.id);
-    if (!totals) {
+    // Single read of everything, reused for both the totals and the order
+    // history below — this used to call getAllData() twice (once inside
+    // getCustomerTotals, once here), doubling Google Sheets API calls for
+    // every visit to this page.
+    const { customers, orders, orderItems, boxContents } = await getAllData();
+
+    const customer = customers.find((c) => c.customer_id === params.id);
+    if (!customer) {
       return NextResponse.json({ error: "Customer not found." }, { status: 404 });
     }
 
-    const { orders, orderItems, boxContents } = await getAllData();
-    const orderHistory = orders
-      .filter((o) => o.customer_id === params.id)
+    const customerOrders = orders.filter((o) => o.customer_id === params.id);
+    const totals = computeCustomerTotals({ customer, orders: customerOrders, orderItems, boxContents });
+
+    const orderHistory = customerOrders
       .map((order) => {
         const items = orderItems.filter((i) => i.order_id === order.order_id);
-        return computeOrderWithDetails(order, items, totals.customer, boxContents);
+        return computeOrderWithDetails(order, items, customer, boxContents);
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 

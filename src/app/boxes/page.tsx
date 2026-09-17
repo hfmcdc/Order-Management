@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/useApi";
-import { LoadingState, ErrorState } from "@/components/StateViews";
+import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { Box, BoxContent, Product } from "@/lib/types";
 import QuantitySelector from "@/components/QuantitySelector";
 
@@ -19,6 +19,13 @@ export default function BoxesPage() {
   const [saving, setSaving] = useState(false);
 
   const products = productData?.products.filter((p) => p.active) ?? [];
+
+  function closeForm() {
+    setShowForm(false);
+    setForm({ name: "", price: "", description: "" });
+    setContents({});
+    setFormError(null);
+  }
 
   async function addBox() {
     setFormError(null);
@@ -48,9 +55,7 @@ export default function BoxesPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
-      setForm({ name: "", price: "", description: "" });
-      setContents({});
-      setShowForm(false);
+      closeForm();
       refresh();
     } catch (err: any) {
       setFormError(err.message ?? "Unable to add box.");
@@ -76,63 +81,102 @@ export default function BoxesPage() {
           <p className="text-maroon-700/70 text-sm mt-0.5">Define what goes inside each Diwali box.</p>
         </div>
         <button
-          onClick={() => setShowForm((s) => !s)}
+          onClick={() => (showForm ? closeForm() : setShowForm(true))}
           className="touch-target rounded-full bg-marigold-500 text-white font-semibold px-5"
         >
           + Add
         </button>
       </header>
 
-      {showForm && (
-        <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
-          <input
-            placeholder="Box name (e.g. Premium Diwali Box)"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="touch-target rounded-card border border-clay-300 px-4"
-          />
-          <input
-            placeholder="Price (₹)"
-            type="number"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="touch-target rounded-card border border-clay-300 px-4"
-          />
-          <input
-            placeholder="Description (optional)"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="touch-target rounded-card border border-clay-300 px-4"
-          />
+      {showForm && products.length === 0 && (
+        <ErrorState message="Add at least one product on the Products page first — a box's contents are built from your existing products." />
+      )}
 
-          <p className="text-sm font-medium text-maroon-800 mt-1">Contents</p>
-          <div className="flex flex-col gap-2">
+      {showForm && products.length > 0 && (
+        <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="box-name" className="text-xs font-medium text-maroon-700/70">
+              Box name
+            </label>
+            <input
+              id="box-name"
+              placeholder="e.g. Premium Diwali Box"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="touch-target rounded-card border border-clay-300 px-4"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="box-price" className="text-xs font-medium text-maroon-700/70">
+              Price (₹)
+            </label>
+            <input
+              id="box-price"
+              placeholder="e.g. 450"
+              type="number"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              className="touch-target rounded-card border border-clay-300 px-4"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="box-description" className="text-xs font-medium text-maroon-700/70">
+              Description (optional)
+            </label>
+            <input
+              id="box-description"
+              placeholder="e.g. Our festive best-seller"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="touch-target rounded-card border border-clay-300 px-4"
+            />
+          </div>
+
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-sm font-medium text-maroon-800 mt-1 mb-1">Contents</legend>
             {products.map((p) => (
               <div key={p.product_id} className="flex items-center justify-between">
-                <span className="text-sm text-maroon-800">{p.name}</span>
+                <span id={`box-content-${p.product_id}`} className="text-sm text-maroon-800">
+                  {p.name}
+                </span>
                 <QuantitySelector
                   value={contents[p.product_id] ?? 0}
                   onChange={(v) => setContents({ ...contents, [p.product_id]: v })}
                 />
               </div>
             ))}
-          </div>
+          </fieldset>
 
           {formError && <ErrorState message={formError} />}
-          <button
-            onClick={addBox}
-            disabled={saving}
-            className="touch-target rounded-full bg-marigold-500 text-white font-medium"
-          >
-            {saving ? "Saving…" : "Save box"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={addBox}
+              disabled={saving}
+              className="touch-target flex-1 rounded-full bg-marigold-500 text-white font-medium"
+            >
+              {saving ? "Saving…" : "Save box"}
+            </button>
+            <button
+              onClick={closeForm}
+              className="touch-target px-5 rounded-full bg-clay-100 text-maroon-800 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
       {loading && <LoadingState label="Loading boxes…" />}
       {error && <ErrorState message={error} onRetry={refresh} />}
 
-      {data && (
+      {data && data.boxes.length === 0 && !showForm && (
+        <EmptyState
+          title="No boxes yet"
+          hint="A box bundles several products together (e.g. Laddoo × 4, Halwa × 2) under one price. Add your products first if you haven't, then create a box here."
+        />
+      )}
+
+      {data && data.boxes.length > 0 && (
         <div className="flex flex-col gap-2">
           {data.boxes.map((box) => {
             const boxContents = data.boxContents.filter((bc) => bc.box_id === box.box_id);

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/useApi";
-import { LoadingState, ErrorState } from "@/components/StateViews";
+import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { Product } from "@/lib/types";
 
 export default function ProductsPage() {
@@ -12,6 +12,12 @@ export default function ProductsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  function closeForm() {
+    setShowForm(false);
+    setForm({ name: "", price: "", category: "" });
+    setFormError(null);
+  }
 
   async function addProduct() {
     setFormError(null);
@@ -28,8 +34,7 @@ export default function ProductsPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
-      setForm({ name: "", price: "", category: "" });
-      setShowForm(false);
+      closeForm();
       refresh();
     } catch (err: any) {
       setFormError(err.message ?? "Unable to add product.");
@@ -55,7 +60,7 @@ export default function ProductsPage() {
           <p className="text-maroon-700/70 text-sm mt-0.5">Manage individual products.</p>
         </div>
         <button
-          onClick={() => setShowForm((s) => !s)}
+          onClick={() => (showForm ? closeForm() : setShowForm(true))}
           className="touch-target rounded-full bg-marigold-500 text-white font-semibold px-5"
         >
           + Add
@@ -64,40 +69,73 @@ export default function ProductsPage() {
 
       {showForm && (
         <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
-          <input
-            placeholder="Product name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="touch-target rounded-card border border-clay-300 px-4"
-          />
-          <input
-            placeholder="Price (₹)"
-            type="number"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="touch-target rounded-card border border-clay-300 px-4"
-          />
-          <input
-            placeholder="Category (e.g. Sweets, Snacks) — optional"
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="touch-target rounded-card border border-clay-300 px-4"
-          />
+          <div className="flex flex-col gap-1">
+            <label htmlFor="product-name" className="text-xs font-medium text-maroon-700/70">
+              Product name
+            </label>
+            <input
+              id="product-name"
+              placeholder="e.g. Laddoo"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="touch-target rounded-card border border-clay-300 px-4"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="product-price" className="text-xs font-medium text-maroon-700/70">
+              Price (₹)
+            </label>
+            <input
+              id="product-price"
+              placeholder="e.g. 20"
+              type="number"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              className="touch-target rounded-card border border-clay-300 px-4"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="product-category" className="text-xs font-medium text-maroon-700/70">
+              Category (optional)
+            </label>
+            <input
+              id="product-category"
+              placeholder="e.g. Sweets, Snacks"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              className="touch-target rounded-card border border-clay-300 px-4"
+            />
+          </div>
           {formError && <ErrorState message={formError} />}
-          <button
-            onClick={addProduct}
-            disabled={saving}
-            className="touch-target rounded-full bg-marigold-500 text-white font-medium"
-          >
-            {saving ? "Saving…" : "Save product"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={addProduct}
+              disabled={saving}
+              className="touch-target flex-1 rounded-full bg-marigold-500 text-white font-medium"
+            >
+              {saving ? "Saving…" : "Save product"}
+            </button>
+            <button
+              onClick={closeForm}
+              className="touch-target px-5 rounded-full bg-clay-100 text-maroon-800 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
       {loading && <LoadingState label="Loading products…" />}
       {error && <ErrorState message={error} onRetry={refresh} />}
 
-      {data && (
+      {data && data.products.length === 0 && !showForm && (
+        <EmptyState
+          title="No products yet"
+          hint="Add your sweets and snacks here first (name + price) — they'll then be available to pick from when building boxes or adding items to an order."
+        />
+      )}
+
+      {data && data.products.length > 0 && (
         <div className="flex flex-col gap-2">
           {data.products.map((p) => (
             <div key={p.product_id} className="rounded-card bg-white border border-clay-300/70 overflow-hidden">

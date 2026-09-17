@@ -10,6 +10,7 @@ import { ProductionRow } from "@/lib/types";
 interface RecentOrder {
   order_id: string;
   customerName: string;
+  boxCount: number;
   itemCount: number;
   total: number;
   created_at: string;
@@ -54,7 +55,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <SummaryCard label="Total orders" value={data.summary.totalOrders} accent />
             <SummaryCard label="Total customers" value={data.summary.totalCustomers} />
-            <SummaryCard label="Total items" value={data.summary.totalItems} />
+            <SummaryCard label="Total items (incl. box contents)" value={data.summary.totalItems} />
             <SummaryCard label="Order value" value={`₹${data.summary.totalOrderValue}`} />
           </div>
 
@@ -107,7 +108,10 @@ export default function DashboardPage() {
                     >
                       <div className="min-w-0">
                         <p className="font-medium text-maroon-800 truncate">{o.customerName}</p>
-                        <p className="text-xs text-maroon-700/60">{o.itemCount} items</p>
+                        <p className="text-xs text-maroon-700/60">
+                          {o.boxCount > 0 ? `${o.boxCount} box${o.boxCount === 1 ? "" : "es"} · ` : ""}
+                          {o.itemCount} items
+                        </p>
                       </div>
                       <span className="font-semibold text-maroon-800 shrink-0">₹{o.total}</span>
                     </Link>

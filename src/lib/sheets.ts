@@ -115,13 +115,25 @@ function getSheetId(): string {
 }
 
 async function withErrorHandling<T>(action: () => Promise<T>, context: string): Promise<T> {
-  try {
-    return await action();
-  } catch (err: any) {
-    const message =
-      err?.errors?.[0]?.message ?? err?.message ?? "Unknown Google Sheets error";
-    throw new SheetsApiError(`${context}: ${message}`);
+  const maxAttempts = 3;
+  let lastErr: any;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await action();
+    } catch (err: any) {
+      lastErr = err;
+      const status = err?.code ?? err?.response?.status;
+      // Only retry on transient errors (rate limiting / server hiccups) —
+      // a real permission or not-found error won't fix itself by retrying.
+      const isTransient = status === 429 || status === 500 || status === 503;
+      if (!isTransient || attempt === maxAttempts) break;
+      const delayMs = 400 * Math.pow(2, attempt - 1); // 400ms, 800ms
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
+  const message =
+    lastErr?.errors?.[0]?.message ?? lastErr?.message ?? "Unknown Google Sheets error";
+  throw new SheetsApiError(`${context}: ${message}`);
 }
 
 /** Read every row of a tab and return it as an array of typed objects. */
@@ -162,7 +174,7 @@ export async function appendRow<T extends Record<string, any>>(
       client.spreadsheets.values.append({
         spreadsheetId: getSheetId(),
         range: `${SHEET_TABS[tab]}!A:A`,
-        valueInputOption: "USER_ENTERED",
+        valueInputOption: "RAW",
         insertDataOption: "INSERT_ROWS",
         requestBody: { values },
       }),
@@ -203,7 +215,7 @@ export async function appendRows<T extends Record<string, any>>(
       client.spreadsheets.values.append({
         spreadsheetId: getSheetId(),
         range: `${SHEET_TABS[tab]}!A:A`,
-        valueInputOption: "USER_ENTERED",
+        valueInputOption: "RAW",
         insertDataOption: "INSERT_ROWS",
         requestBody: { values },
       }),
@@ -226,18 +238,24 @@ export async function updateRow<T extends Record<string, any>>(
   const columns = SHEET_COLUMNS[tab];
   const idColumn = ID_COLUMN[tab];
 
-  const rowIndex = await findRowIndex(tab, idColumn, id);
+  // One read gives us both the row's position AND its current values —
+  // previously this was two separate reads, which doubled API calls per
+  // update and left a race window between "find the row" and "read its
+  // current values" if anything else touched the sheet in between.
+  const rawRows = await readSheetRaw(tab);
+  const rowIndex = rawRows.findIndex((row) => {
+    const record = rowToObject<any>(row, columns);
+    return record[idColumn] === id;
+  });
   if (rowIndex === -1) {
     throw new SheetsApiError(`Could not find ${tab} row with ${idColumn}=${id}`);
   }
+  const existing = rowToObject<any>(rawRows[rowIndex], columns);
 
-  // Read the existing row so unspecified columns are preserved. Strip any
-  // keys whose value is `undefined` from the patch first — callers often
-  // build patch objects from destructured request bodies where an omitted
-  // field still shows up as an explicit `undefined` key, and spreading that
-  // over `existing` would otherwise blank the column out.
-  const existingRows = await readSheet<any>(tab);
-  const existing = existingRows.find((r) => r[idColumn] === id) ?? {};
+  // Strip any keys whose value is `undefined` from the patch — callers
+  // often build patch objects from destructured request bodies where an
+  // omitted field still shows up as an explicit `undefined` key, and
+  // spreading that over `existing` would otherwise blank the column out.
   const definedPatch = Object.fromEntries(
     Object.entries(patch).filter(([, v]) => v !== undefined)
   );
@@ -251,7 +269,7 @@ export async function updateRow<T extends Record<string, any>>(
       client.spreadsheets.values.update({
         spreadsheetId: getSheetId(),
         range,
-        valueInputOption: "USER_ENTERED",
+        valueInputOption: "RAW",
         requestBody: { values },
       }),
     `Failed to update ${tab} row ${id}`
@@ -404,13 +422,6 @@ async function readSheetRaw(tab: SheetTab): Promise<string[][]> {
   return (res.data.values as string[][]) ?? [];
 }
 
-async function findRowIndex(tab: SheetTab, idColumn: string, id: string): Promise<number> {
-  const columns = SHEET_COLUMNS[tab];
-  const rows = await readSheetRaw(tab);
-  const colIdx = columns.indexOf(idColumn);
-  return rows.findIndex((row) => row[colIdx] === id);
-}
-
 async function nextIdNumber(tab: SheetTab): Promise<number> {
   const idColumn = ID_COLUMN[tab];
   const prefix = ID_PREFIX[tab];
@@ -449,10 +460,32 @@ async function getTabSheetId(tab: SheetTab): Promise<number> {
   return id;
 }
 
+// Columns that are meant to hold ISO date strings ("2026-09-15") or
+// timestamps ("2026-09-15T12:00:00.000Z"). Rows written before this app
+// switched to RAW input could have had these auto-converted by Google
+// Sheets into its internal date serial number (days since 1899-12-30) —
+// this recovers a readable date from that serial so old rows display
+// correctly too, not just new ones.
+const DATE_COLUMNS = new Set([
+  "order_date",
+  "fulfillment_date",
+  "created_at",
+  "updated_at",
+]);
+
+function serialToIsoDate(serial: number): string {
+  const ms = (serial - 25569) * 86400 * 1000; // 25569 = days between 1899-12-30 and 1970-01-01
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
 function rowToObject<T>(row: any[], columns: string[]): T {
   const obj: any = {};
   columns.forEach((col, idx) => {
-    obj[col] = parseCell(row[idx]);
+    let value = parseCell(row[idx]);
+    if (DATE_COLUMNS.has(col) && typeof value === "number" && value > 10000) {
+      value = serialToIsoDate(value);
+    }
+    obj[col] = value;
   });
   return obj as T;
 }
