@@ -28,15 +28,15 @@ export default function OrdersPage() {
   }, [data, query, statusFilter]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="font-display font-700 text-2xl text-maroon-800">Orders</h1>
-          <p className="text-maroon-700/70 text-sm mt-0.5">Every order, searchable and filterable.</p>
+          <p className="text-maroon-700/70 text-sm mt-1">Every order, searchable and filterable.</p>
         </div>
         <Link
           href="/orders/new"
-          className="hidden md:flex touch-target items-center rounded-full bg-marigold-500 text-white font-semibold px-5 shadow-sm hover:bg-marigold-600 transition-colors"
+          className="hidden md:flex touch-target items-center rounded-full bg-marigold-500 text-white font-semibold px-5 shadow-md shadow-marigold-500/25 hover:bg-marigold-600 transition-colors"
         >
           + New Order
         </Link>
@@ -47,12 +47,12 @@ export default function OrdersPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, phone, or order ID"
-          className="touch-target flex-1 rounded-card border border-clay-300 px-4 bg-white"
+          className="touch-target flex-1 rounded-2xl bg-white px-4 shadow-sm"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="touch-target rounded-card border border-clay-300 px-4 bg-white"
+          className="touch-target rounded-2xl bg-white px-4 shadow-sm"
         >
           <option value="All">All statuses</option>
           {ORDER_STATUSES.map((s) => (
@@ -71,14 +71,14 @@ export default function OrdersPage() {
       )}
 
       {data && filtered.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {filtered.map((order) => {
             const isCompleted = order.status === "Delivered" && order.payment_status === "Paid";
             return (
               <Link
                 key={order.order_id}
                 href={`/orders/${order.order_id}`}
-                className={`rounded-card bg-white border border-clay-300/70 px-4 py-3 flex items-center justify-between gap-3 hover:border-marigold-400 transition-colors ${
+                className={`card px-5 py-4 flex items-center justify-between gap-3 active:scale-[0.99] transition-transform ${
                   isCompleted ? "opacity-60" : ""
                 }`}
               >
@@ -90,12 +90,12 @@ export default function OrdersPage() {
                   >
                     {order.customer?.name ?? "Unknown customer"}
                   </p>
-                  <p className="text-xs text-maroon-700/60">
+                  <p className="text-xs text-maroon-700/60 mt-1">
                     {order.order_id} · {order.totalBoxes} boxes · {order.totalIndividualItems} individual ·{" "}
                     {order.order_date}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <OrderStatusBadge status={order.status} />
                   <PaymentStatusBadge status={order.payment_status} />
                 </div>
