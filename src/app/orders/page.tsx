@@ -72,27 +72,36 @@ export default function OrdersPage() {
 
       {data && filtered.length > 0 && (
         <div className="flex flex-col gap-2">
-          {filtered.map((order) => (
-            <Link
-              key={order.order_id}
-              href={`/orders/${order.order_id}`}
-              className="rounded-card bg-white border border-clay-300/70 px-4 py-3 flex items-center justify-between gap-3 hover:border-marigold-400 transition-colors"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-maroon-800 truncate">
-                  {order.customer?.name ?? "Unknown customer"}
-                </p>
-                <p className="text-xs text-maroon-700/60">
-                  {order.order_id} · {order.totalBoxes} boxes · {order.totalIndividualItems} individual ·{" "}
-                  {order.order_date}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <OrderStatusBadge status={order.status} />
-                <PaymentStatusBadge status={order.payment_status} />
-              </div>
-            </Link>
-          ))}
+          {filtered.map((order) => {
+            const isCompleted = order.status === "Delivered" && order.payment_status === "Paid";
+            return (
+              <Link
+                key={order.order_id}
+                href={`/orders/${order.order_id}`}
+                className={`rounded-card bg-white border border-clay-300/70 px-4 py-3 flex items-center justify-between gap-3 hover:border-marigold-400 transition-colors ${
+                  isCompleted ? "opacity-60" : ""
+                }`}
+              >
+                <div className="min-w-0">
+                  <p
+                    className={`font-medium text-maroon-800 truncate ${
+                      isCompleted ? "line-through decoration-1" : ""
+                    }`}
+                  >
+                    {order.customer?.name ?? "Unknown customer"}
+                  </p>
+                  <p className="text-xs text-maroon-700/60">
+                    {order.order_id} · {order.totalBoxes} boxes · {order.totalIndividualItems} individual ·{" "}
+                    {order.order_date}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <OrderStatusBadge status={order.status} />
+                  <PaymentStatusBadge status={order.payment_status} />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

@@ -214,7 +214,13 @@ export default function OrderDetailPage() {
 
         <header className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="font-display font-700 text-2xl text-maroon-800">{order.order_id}</h1>
+            <h1
+              className={`font-display font-700 text-2xl text-maroon-800 ${
+                order.status === "Delivered" && order.payment_status === "Paid" ? "line-through decoration-1" : ""
+              }`}
+            >
+              {order.order_id}
+            </h1>
             <p className="text-maroon-700/70 text-sm mt-0.5">
               {order.customer?.name} · {order.customer?.phone}
             </p>

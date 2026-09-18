@@ -81,7 +81,17 @@ export async function updateCustomer(
 /** Permanently delete a customer. Past orders that reference them keep
  * their own record, but will show as "Unknown customer" once the customer
  * itself is gone. */
+/** Permanently delete a customer AND all orders belonging to them (and
+ * those orders' line items), so no orphaned orders are left pointing at a
+ * customer that no longer exists. Products and boxes referenced by those
+ * orders are untouched. */
 export async function deleteCustomer(id: string): Promise<void> {
+  const orders = await listOrders();
+  const orderIds = new Set(orders.filter((o) => o.customer_id === id).map((o) => o.order_id));
+  if (orderIds.size > 0) {
+    await deleteRowsWhere("OrderItems", (item) => orderIds.has(item.order_id));
+    await deleteRowsWhere("Orders", (order) => orderIds.has(order.order_id));
+  }
   await deleteRow("Customers", id);
 }
 

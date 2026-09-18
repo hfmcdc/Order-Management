@@ -31,7 +31,7 @@ export default function CustomerDetailPage() {
   async function deleteCustomerNow() {
     if (
       !confirm(
-        `Delete ${totals.customer.name} permanently? Their past orders will remain but will show as "Unknown customer". This can't be undone.`
+        `Delete ${totals.customer.name} permanently? This will also delete all ${totals.orderCount} of their order(s). This can't be undone.`
       )
     ) {
       return;

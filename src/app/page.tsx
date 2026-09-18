@@ -45,11 +45,31 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Hero banner */}
-      <div className="relative rounded-card overflow-hidden bg-maroon-800 px-5 py-6 md:px-8 md:py-8 flex items-center gap-4">
-        <div className="w-16 h-16 md:w-20 md:h-20 relative shrink-0">
+      <div className="relative rounded-card overflow-hidden bg-gradient-to-br from-maroon-900 via-maroon-800 to-maroon-700 px-5 py-6 md:px-8 md:py-8 flex items-center gap-4 border border-gold-500/20">
+        {/* subtle rangoli-inspired decoration, kept low-opacity so it never fights the text */}
+        <svg
+          className="absolute -right-6 -top-6 w-40 h-40 md:w-56 md:h-56 opacity-[0.08] pointer-events-none"
+          viewBox="0 0 200 200"
+          fill="none"
+        >
+          <circle cx="100" cy="100" r="90" stroke="#F6D77A" strokeWidth="1.5" />
+          <circle cx="100" cy="100" r="65" stroke="#F6D77A" strokeWidth="1.5" />
+          {Array.from({ length: 12 }).map((_, i) => (
+            <line
+              key={i}
+              x1="100"
+              y1="100"
+              x2={100 + 90 * Math.cos((i * Math.PI) / 6)}
+              y2={100 + 90 * Math.sin((i * Math.PI) / 6)}
+              stroke="#F6D77A"
+              strokeWidth="1.5"
+            />
+          ))}
+        </svg>
+        <div className="w-16 h-16 md:w-20 md:h-20 relative shrink-0 z-10">
           <Image src="/logo.png" alt="Vaiga Sweets & Snacks" fill sizes="80px" />
         </div>
-        <div>
+        <div className="z-10">
           <h1 className="font-display font-700 text-xl md:text-2xl text-ivory">Welcome back!</h1>
           <p className="text-marigold-100/80 text-sm mt-0.5">Let&apos;s make this Diwali sweeter.</p>
         </div>
@@ -60,11 +80,10 @@ export default function DashboardPage() {
 
       {data && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <SummaryCard label="Total orders" value={data.summary.totalOrders} accent />
             <SummaryCard label="Total customers" value={data.summary.totalCustomers} />
             <SummaryCard label="Total items (incl. box contents)" value={data.summary.totalItems} />
-            <SummaryCard label="Order value" value={`₹${data.summary.totalOrderValue}`} />
           </div>
 
           {/* Quick actions */}

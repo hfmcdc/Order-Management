@@ -61,14 +61,6 @@ export default function Nav() {
         ))}
       </nav>
 
-      {/* Mobile floating New Order button */}
-      <Link
-        href="/orders/new"
-        className="no-print md:hidden fixed bottom-20 right-4 z-30 rounded-full bg-marigold-500 text-white w-16 h-16 flex items-center justify-center shadow-lg text-3xl font-light active:scale-95 transition-transform"
-        aria-label="New order"
-      >
-        +
-      </Link>
     </>
   );
 }
