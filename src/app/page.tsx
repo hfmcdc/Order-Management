@@ -83,7 +83,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
             <SummaryCard label="Total orders" value={data.summary.totalOrders} accent />
             <SummaryCard label="Total customers" value={data.summary.totalCustomers} />
-            <SummaryCard label="Total items (incl. box contents)" value={data.summary.totalItems} />
+            <SummaryCard label="Total no. of boxes" value={data.summary.totalBoxes} />
           </div>
 
           {/* Quick actions */}
