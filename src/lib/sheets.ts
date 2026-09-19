@@ -23,6 +23,7 @@ const SHEET_TABS = {
   BoxContents: "BoxContents",
   Orders: "Orders",
   OrderItems: "OrderItems",
+  ProductUnits: "ProductUnits",
 } as const;
 
 export type SheetTab = keyof typeof SHEET_TABS;
@@ -33,7 +34,10 @@ export const SHEET_COLUMNS: Record<SheetTab, string[]> = {
   Customers: ["customer_id", "name", "phone", "address", "created_at", "updated_at"],
   Products: ["product_id", "name", "price", "active", "category"],
   Boxes: ["box_id", "name", "price", "description", "active"],
-  BoxContents: ["box_id", "product_id", "quantity"],
+  // unit_label appended at the end — existing rows (written before this
+  // feature existed) just read back as "" for it, meaning "no specific
+  // unit", which is exactly the old behavior.
+  BoxContents: ["box_id", "product_id", "quantity", "unit_label"],
   Orders: [
     "order_id",
     "customer_id",
@@ -55,7 +59,12 @@ export const SHEET_COLUMNS: Record<SheetTab, string[]> = {
     "box_id",
     "quantity",
     "unit_price",
+    "unit_label",
   ],
+  // New tab: optional extra selling units for a product (e.g. Halwa sold
+  // as "Piece" inside boxes and "250g"/"500g" individually). A product
+  // with no rows here just behaves as a single plain unit, as before.
+  ProductUnits: ["unit_id", "product_id", "label", "context", "price", "active"],
 };
 
 // The column that uniquely identifies a row, used for updates/lookups.
@@ -66,6 +75,7 @@ const ID_COLUMN: Record<SheetTab, string> = {
   BoxContents: "box_id", // composite key in practice; see updateBoxContents below
   Orders: "order_id",
   OrderItems: "order_item_id",
+  ProductUnits: "unit_id",
 };
 
 const ID_PREFIX: Record<SheetTab, string> = {
@@ -75,6 +85,7 @@ const ID_PREFIX: Record<SheetTab, string> = {
   BoxContents: "",
   Orders: "ORD",
   OrderItems: "OI",
+  ProductUnits: "PU",
 };
 
 let cachedClient: sheets_v4.Sheets | null = null;

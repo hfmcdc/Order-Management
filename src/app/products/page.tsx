@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
-import { Product } from "@/lib/types";
+import { Product, ProductUnit, UnitContext } from "@/lib/types";
 
 export default function ProductsPage() {
   const { data, loading, error, refresh } = useApi<{ products: Product[] }>("/api/products");
+  const { data: unitsData, refresh: refreshUnits } = useApi<{ units: ProductUnit[] }>(
+    "/api/product-units"
+  );
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", price: "", category: "" });
   const [formError, setFormError] = useState<string | null>(null);
@@ -109,6 +112,10 @@ export default function ProductsPage() {
               onChange={(e) => setForm({ ...form, price: e.target.value })}
               className="touch-target rounded-card border border-clay-300 px-4"
             />
+            <p className="text-xs text-maroon-700/50">
+              Used only if this product has no extra units below — a multi-unit product (like Halwa)
+              prices each unit separately instead.
+            </p>
           </div>
           <div className="flex flex-col gap-1">
             <label htmlFor="product-category" className="text-xs font-medium text-maroon-700/70">
@@ -153,43 +160,199 @@ export default function ProductsPage() {
 
       {data && data.products.length > 0 && (
         <div className="flex flex-col gap-2">
-          {data.products.map((p) => (
-            <div key={p.product_id} className="rounded-card bg-white border border-clay-300/70 overflow-hidden">
-              <button
-                onClick={() => setExpanded(expanded === p.product_id ? null : p.product_id)}
-                className="w-full touch-target px-4 py-3 flex items-center justify-between text-left"
-              >
-                <div>
-                  <p className="font-medium text-maroon-800">
-                    {p.name} {!p.active && <span className="text-xs text-maroon-700/50">(inactive)</span>}
-                  </p>
-                  <p className="text-sm text-maroon-700/60">₹{p.price}{p.category ? ` · ${p.category}` : ""}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleActive(p);
-                    }}
-                    className="text-xs text-marigold-600 font-medium"
-                  >
-                    {p.active ? "Disable" : "Enable"}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteProduct(p);
-                    }}
-                    className="text-xs text-red-600 font-medium"
-                  >
-                    Delete
-                  </button>
-                  <span className="text-maroon-700/40">{expanded === p.product_id ? "▲" : "▼"}</span>
-                </div>
-              </button>
-              {expanded === p.product_id && <ProductCustomers productId={p.product_id} />}
+          {data.products.map((p) => {
+            const units = (unitsData?.units ?? []).filter((u) => u.product_id === p.product_id);
+            return (
+              <div key={p.product_id} className="rounded-card bg-white border border-clay-300/70 overflow-hidden">
+                <button
+                  onClick={() => setExpanded(expanded === p.product_id ? null : p.product_id)}
+                  className="w-full touch-target px-4 py-3 flex items-center justify-between text-left"
+                >
+                  <div>
+                    <p className="font-medium text-maroon-800">
+                      {p.name} {!p.active && <span className="text-xs text-maroon-700/50">(inactive)</span>}
+                    </p>
+                    <p className="text-sm text-maroon-700/60">
+                      {units.length > 0
+                        ? `${units.length} unit${units.length === 1 ? "" : "s"} configured`
+                        : `₹${p.price}`}
+                      {p.category ? ` · ${p.category}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleActive(p);
+                      }}
+                      className="text-xs text-marigold-600 font-medium"
+                    >
+                      {p.active ? "Disable" : "Enable"}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteProduct(p);
+                      }}
+                      className="text-xs text-red-600 font-medium"
+                    >
+                      Delete
+                    </button>
+                    <span className="text-maroon-700/40">{expanded === p.product_id ? "▲" : "▼"}</span>
+                  </div>
+                </button>
+                {expanded === p.product_id && (
+                  <>
+                    <ProductUnitsManager product={p} units={units} onChanged={refreshUnits} />
+                    <ProductCustomers productId={p.product_id} />
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductUnitsManager({
+  product,
+  units,
+  onChanged,
+}: {
+  product: Product;
+  units: ProductUnit[];
+  onChanged: () => void;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [label, setLabel] = useState("");
+  const [context, setContext] = useState<UnitContext>("individual");
+  const [price, setPrice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [unitError, setUnitError] = useState<string | null>(null);
+
+  async function addUnit() {
+    setUnitError(null);
+    if (!label.trim() || !price) {
+      setUnitError("Please enter a label and price.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/product-units", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: product.product_id,
+          label: label.trim(),
+          context,
+          price: Number(price),
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error);
+      setLabel("");
+      setPrice("");
+      setShowAdd(false);
+      onChanged();
+    } catch (err: any) {
+      setUnitError(err.message ?? "Unable to add unit.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeUnit(unit: ProductUnit) {
+    if (!confirm(`Remove the "${unit.label}" unit from ${product.name}?`)) return;
+    await fetch("/api/product-units", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unit_id: unit.unit_id }),
+    });
+    onChanged();
+  }
+
+  return (
+    <div className="border-t border-clay-300/60 px-4 py-3 bg-clay-100/30 flex flex-col gap-2">
+      <p className="text-xs text-maroon-700/60">
+        Extra selling units — e.g. Halwa as &quot;Piece&quot; for boxes and &quot;250g&quot;/&quot;500g&quot; for
+        individual sale. Leave empty for a normal single-price product.
+      </p>
+      {units.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {units.map((u) => (
+            <div key={u.unit_id} className="flex items-center justify-between text-sm bg-white rounded-xl px-3 py-2">
+              <span className="text-maroon-800">
+                {u.label} <span className="text-maroon-700/50">· {u.context === "box" ? "box" : "individual"}</span>
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-maroon-700/70">₹{u.price}</span>
+                <button onClick={() => removeUnit(u)} className="text-xs text-red-600 font-medium">
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {!showAdd ? (
+        <button
+          onClick={() => setShowAdd(true)}
+          className="self-start text-sm text-marigold-600 font-medium touch-target"
+        >
+          + Add a unit
+        </button>
+      ) : (
+        <div className="flex flex-col gap-2 bg-white rounded-xl p-3">
+          <input
+            placeholder="Label, e.g. Piece or 250g"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            className="touch-target rounded-xl border border-clay-300 px-3 text-sm"
+          />
+          <div className="flex gap-2">
+            {(["box", "individual"] as UnitContext[]).map((c) => (
+              <button
+                key={c}
+                onClick={() => setContext(c)}
+                className={`touch-target flex-1 rounded-xl text-sm font-medium border ${
+                  context === c
+                    ? "bg-maroon-800 text-white border-maroon-800"
+                    : "bg-white text-maroon-800 border-clay-300"
+                }`}
+              >
+                {c === "box" ? "For boxes" : "For individual sale"}
+              </button>
+            ))}
+          </div>
+          <input
+            placeholder="Price for this unit (₹)"
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="touch-target rounded-xl border border-clay-300 px-3 text-sm"
+          />
+          {unitError && <ErrorState message={unitError} />}
+          <div className="flex gap-2">
+            <button
+              onClick={addUnit}
+              disabled={saving}
+              className="touch-target flex-1 rounded-full bg-marigold-500 text-white text-sm font-medium"
+            >
+              {saving ? "Saving…" : "Add unit"}
+            </button>
+            <button
+              onClick={() => {
+                setShowAdd(false);
+                setUnitError(null);
+              }}
+              className="touch-target px-4 rounded-full bg-clay-100 text-maroon-800 text-sm font-medium"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>

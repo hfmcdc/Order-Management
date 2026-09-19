@@ -58,12 +58,12 @@ async function main() {
   console.log(`  + Box: ${premiumBox.name} (${premiumBox.box_id})`);
 
   await appendRows<BoxContent>("BoxContents", [
-    { box_id: regularBox.box_id, product_id: byName("Laddoo").product_id, quantity: 3 },
-    { box_id: regularBox.box_id, product_id: byName("Halwa").product_id, quantity: 2 },
-    { box_id: regularBox.box_id, product_id: byName("Mixture").product_id, quantity: 1 },
-    { box_id: premiumBox.box_id, product_id: byName("Laddoo").product_id, quantity: 4 },
-    { box_id: premiumBox.box_id, product_id: byName("Mysore Pak").product_id, quantity: 4 },
-    { box_id: premiumBox.box_id, product_id: byName("Halwa").product_id, quantity: 2 },
+    { box_id: regularBox.box_id, product_id: byName("Laddoo").product_id, quantity: 3, unit_label: "" },
+    { box_id: regularBox.box_id, product_id: byName("Halwa").product_id, quantity: 2, unit_label: "" },
+    { box_id: regularBox.box_id, product_id: byName("Mixture").product_id, quantity: 1, unit_label: "" },
+    { box_id: premiumBox.box_id, product_id: byName("Laddoo").product_id, quantity: 4, unit_label: "" },
+    { box_id: premiumBox.box_id, product_id: byName("Mysore Pak").product_id, quantity: 4, unit_label: "" },
+    { box_id: premiumBox.box_id, product_id: byName("Halwa").product_id, quantity: 2, unit_label: "" },
   ]);
   console.log("  + Box contents defined for both boxes");
 
@@ -133,6 +133,7 @@ async function main() {
         box_id: b.box.box_id,
         quantity: b.qty,
         unit_price: b.box.price,
+        unit_label: "",
       })),
       ...plan.individual.map((i) => ({
         order_id: order.order_id,
@@ -141,6 +142,7 @@ async function main() {
         box_id: "",
         quantity: i.qty,
         unit_price: i.product.price,
+        unit_label: "",
       })),
     ];
 

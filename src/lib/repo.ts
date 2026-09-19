@@ -16,6 +16,7 @@ import {
   OrderItem,
   OrderWithDetails,
   Product,
+  ProductUnit,
 } from "./types";
 import {
   computeCustomerTotals,
@@ -125,7 +126,22 @@ export async function updateProduct(id: string, patch: Partial<Product>): Promis
  * stored name/price snapshot where possible, but will show a generic
  * fallback name once the product itself is gone. */
 export async function deleteProduct(id: string): Promise<void> {
+  await deleteRowsWhere("ProductUnits", (u) => u.product_id === id);
   await deleteRow("Products", id);
+}
+
+// ---- Product Units (optional extra selling units, e.g. Halwa's "Piece"/"250g"/"500g") ----
+
+export async function listProductUnits(): Promise<ProductUnit[]> {
+  return readSheet<ProductUnit>("ProductUnits");
+}
+
+export async function createProductUnit(input: Omit<ProductUnit, "unit_id">): Promise<ProductUnit> {
+  return appendRow<ProductUnit>("ProductUnits", { unit_id: "", ...input } as ProductUnit);
+}
+
+export async function deleteProductUnit(id: string): Promise<void> {
+  await deleteRow("ProductUnits", id);
 }
 
 // ---- Boxes ----
@@ -140,13 +156,18 @@ export async function listBoxContents(): Promise<BoxContent[]> {
 
 export async function createBox(
   input: Omit<Box, "box_id">,
-  contents: { product_id: string; quantity: number }[]
+  contents: { product_id: string; quantity: number; unit_label?: string }[]
 ): Promise<Box> {
   const box = await appendRow<Box>("Boxes", { box_id: "", ...input } as Box);
   if (contents.length > 0) {
     await appendRows<BoxContent>(
       "BoxContents",
-      contents.map((c) => ({ box_id: box.box_id, product_id: c.product_id, quantity: c.quantity }))
+      contents.map((c) => ({
+        box_id: box.box_id,
+        product_id: c.product_id,
+        quantity: c.quantity,
+        unit_label: c.unit_label ?? "",
+      }))
     );
   }
   return box;
@@ -180,6 +201,7 @@ export interface NewOrderItemInput {
   product_id?: string;
   quantity: number;
   unit_price: number;
+  unit_label?: string; // set when this line is a specific unit variant, e.g. "250g"
 }
 
 export interface NewOrderInput {
@@ -220,6 +242,7 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
       box_id: item.item_type === "box" ? item.box_id ?? "" : "",
       quantity: item.quantity,
       unit_price: item.unit_price,
+      unit_label: item.unit_label ?? "",
     }))
   );
 
@@ -260,6 +283,7 @@ export async function updateOrderDetails(
         box_id: item.item_type === "box" ? item.box_id ?? "" : "",
         quantity: item.quantity,
         unit_price: item.unit_price,
+        unit_label: item.unit_label ?? "",
       }))
     );
   }
