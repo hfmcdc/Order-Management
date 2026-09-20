@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { Box, BoxContent, Product, ProductUnit } from "@/lib/types";
+import { dedupeProductUnits } from "@/lib/product-units";
 import QuantitySelector from "@/components/QuantitySelector";
 
 // Contents state is keyed by "productId" for a plain product, or
@@ -34,7 +35,7 @@ export default function BoxesPage() {
   const [saving, setSaving] = useState(false);
 
   const products = productData?.products.filter((p) => p.active) ?? [];
-  const allUnits = unitsData?.units ?? [];
+  const allUnits = dedupeProductUnits(unitsData?.units ?? []);
 
   function closeForm() {
     setShowForm(false);
