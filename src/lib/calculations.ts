@@ -25,23 +25,9 @@ export function isOrderActive(order: Pick<Order, "status">): boolean {
   return order.status !== "Cancelled";
 }
 
-/** Internal helper: a stable composite key so a product's different units
- * (e.g. Halwa "Piece" vs "250g") are always tracked as separate lines,
- * never summed together. A plain product with no unit just gets "" as its
- * unit half of the key, which is exactly how it worked before this
- * existed. */
-function unitKey(productId: string, unitLabel: string): string {
-  return `${productId}::${unitLabel ?? ""}`;
-}
-function splitUnitKey(key: string): { productId: string; unitLabel: string } {
-  const idx = key.indexOf("::");
-  return { productId: key.slice(0, idx), unitLabel: key.slice(idx + 2) };
-}
-
 /**
- * Expand a quantity of a given box into the individual products (and their
- * specific unit, if any) it contains. Returns a map of
- * "productId::unitLabel" -> quantity contributed by this many boxes.
+ * Expand a quantity of a given box into the individual products it contains.
+ * Returns a map of product_id -> quantity contributed by this many boxes.
  */
 export function expandBoxToProducts(
   boxId: string,
@@ -51,9 +37,8 @@ export function expandBoxToProducts(
   const result = new Map<string, number>();
   const contents = boxContents.filter((bc) => bc.box_id === boxId);
   for (const content of contents) {
-    const key = unitKey(content.product_id, content.unit_label);
-    const existing = result.get(key) ?? 0;
-    result.set(key, existing + content.quantity * boxQuantity);
+    const existing = result.get(content.product_id) ?? 0;
+    result.set(content.product_id, existing + content.quantity * boxQuantity);
   }
   return result;
 }
@@ -172,32 +157,27 @@ export function computeProductionRows(params: {
 
     if (item.item_type === "box") {
       const expanded = expandBoxToProducts(item.box_id, item.quantity, boxContents);
-      for (const [key, qty] of expanded) {
-        fromBoxes.set(key, (fromBoxes.get(key) ?? 0) + qty);
+      for (const [productId, qty] of expanded) {
+        fromBoxes.set(productId, (fromBoxes.get(productId) ?? 0) + qty);
       }
     } else {
-      const key = unitKey(item.product_id, item.unit_label);
-      individual.set(key, (individual.get(key) ?? 0) + item.quantity);
+      individual.set(
+        item.product_id,
+        (individual.get(item.product_id) ?? 0) + item.quantity
+      );
     }
   }
 
-  const keys = new Set([...fromBoxes.keys(), ...individual.keys()]);
+  const productIds = new Set([...fromBoxes.keys(), ...individual.keys()]);
 
   const rows: ProductionRow[] = [];
-  for (const key of keys) {
-    const { productId, unitLabel } = splitUnitKey(key);
+  for (const productId of productIds) {
     const product = products.find((p) => p.product_id === productId);
-    const fb = fromBoxes.get(key) ?? 0;
-    const ind = individual.get(key) ?? 0;
-    const baseName = product?.name ?? "(unknown product)";
+    const fb = fromBoxes.get(productId) ?? 0;
+    const ind = individual.get(productId) ?? 0;
     rows.push({
       product_id: productId,
-      unit_label: unitLabel,
-      // A plain (no-unit) product displays exactly as before, e.g.
-      // "Laddoo". A multi-unit product shows its unit for clarity, e.g.
-      // "Halwa (Piece)" and "Halwa (250g)" as separate rows — these are
-      // NEVER combined into one "Halwa" total, by construction.
-      name: unitLabel ? `${baseName} (${unitLabel})` : baseName,
+      name: product?.name ?? "(unknown product)",
       category: product?.category,
       fromBoxes: fb,
       individual: ind,
@@ -289,10 +269,7 @@ export function computeCustomerTotals(params: {
 /**
  * For the "which customers ordered this product" filter (spec section 19).
  * Returns each customer's contribution (from boxes + individually) to the
- * given product's total, across active orders only. For a multi-unit
- * product (e.g. Halwa), this matches only the plain/default unit ("") by
- * design — the same "never mix units" rule as production. Ordinary
- * single-unit products are completely unaffected.
+ * given product's total, across active orders only.
  */
 export function computeCustomerContributionsForProduct(params: {
   productId: string;
@@ -309,7 +286,6 @@ export function computeCustomerContributionsForProduct(params: {
   const orderIdToCustomerId = new Map(orders.map((o) => [o.order_id, o.customer_id]));
 
   const contributions = new Map<string, number>();
-  const targetKey = unitKey(productId, "");
 
   for (const item of orderItems) {
     if (!activeOrderIds.has(item.order_id)) continue;
@@ -317,11 +293,11 @@ export function computeCustomerContributionsForProduct(params: {
     if (!customerId) continue;
 
     let qty = 0;
-    if (item.item_type === "product" && unitKey(item.product_id, item.unit_label) === targetKey) {
+    if (item.item_type === "product" && item.product_id === productId) {
       qty = item.quantity;
     } else if (item.item_type === "box") {
       const expanded = expandBoxToProducts(item.box_id, item.quantity, boxContents);
-      qty = expanded.get(targetKey) ?? 0;
+      qty = expanded.get(productId) ?? 0;
     }
     if (qty > 0) {
       contributions.set(customerId, (contributions.get(customerId) ?? 0) + qty);

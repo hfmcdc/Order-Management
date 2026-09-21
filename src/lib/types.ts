@@ -45,22 +45,6 @@ export interface Product {
   category?: string; // optional, used to group Production page ("Sweets"/"Snacks")
 }
 
-// A product can optionally be sold in more than one unit — e.g. Halwa as
-// whole pieces inside a box, and by weight (250g/500g) when sold
-// individually. A product with no units at all behaves exactly as before
-// (a single plain quantity, no unit shown) — this is purely additive.
-export type UnitContext = "box" | "individual";
-export const UNIT_CONTEXTS: UnitContext[] = ["box", "individual"];
-
-export interface ProductUnit {
-  unit_id: string;
-  product_id: string;
-  label: string; // e.g. "Piece", "250g", "500g" — shown to the user as-is
-  context: UnitContext; // whether this unit is offered inside boxes or for individual sale
-  price: number;
-  active: boolean;
-}
-
 export interface Box {
   box_id: string;
   name: string;
@@ -73,7 +57,6 @@ export interface BoxContent {
   box_id: string;
   product_id: string;
   quantity: number;
-  unit_label: string; // "" = product's plain default unit (legacy/unaffected behavior)
 }
 
 export interface Order {
@@ -98,7 +81,6 @@ export interface OrderItem {
   box_id: string; // set when item_type === "box"
   quantity: number;
   unit_price: number; // snapshot of price at time of order
-  unit_label: string; // "" = product's plain default unit (legacy/unaffected behavior)
 }
 
 // ---- Composite / view-model types used by the UI ----
@@ -116,8 +98,7 @@ export interface OrderWithDetails extends Order {
 
 export interface ProductionRow {
   product_id: string;
-  unit_label: string; // "" for a plain (single-unit) product
-  name: string; // includes the unit for clarity when unit_label is set, e.g. "Halwa (250g)"
+  name: string;
   category?: string;
   fromBoxes: number;
   individual: number;

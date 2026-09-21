@@ -21,19 +21,15 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     }
 
     // Attach a human-readable name to each line item (box/product name), so
-    // the UI, print view, PDF, and WhatsApp message don't have to show raw
-    // IDs — and for a multi-unit product (e.g. Halwa), the specific unit
-    // (e.g. "250g") is folded into the name here too, once, so every
-    // consumer of this API response shows it consistently.
+    // the UI, print view, and WhatsApp message don't have to show raw IDs.
     const [boxes, products] = await Promise.all([listBoxes(), listProducts()]);
-    const itemsWithNames = order.items.map((item) => {
-      if (item.item_type === "box") {
-        return { ...item, name: boxes.find((b) => b.box_id === item.box_id)?.name ?? "Box" };
-      }
-      const baseName = products.find((p) => p.product_id === item.product_id)?.name ?? "Product";
-      const unitLabel = (item as any).unit_label as string | undefined;
-      return { ...item, name: unitLabel ? `${baseName} (${unitLabel})` : baseName };
-    });
+    const itemsWithNames = order.items.map((item) => ({
+      ...item,
+      name:
+        item.item_type === "box"
+          ? boxes.find((b) => b.box_id === item.box_id)?.name ?? "Box"
+          : products.find((p) => p.product_id === item.product_id)?.name ?? "Product",
+    }));
 
     return NextResponse.json({ order: { ...order, items: itemsWithNames } });
   } catch (err) {

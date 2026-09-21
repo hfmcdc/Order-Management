@@ -3,29 +3,14 @@
 import { useState } from "react";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
-import { Box, BoxContent, Product, ProductUnit } from "@/lib/types";
+import { Box, BoxContent, Product } from "@/lib/types";
 import QuantitySelector from "@/components/QuantitySelector";
-
-// Contents state is keyed by "productId" for a plain product, or
-// "productId::unitLabel" for a specific unit of a multi-unit product —
-// this lets one product contribute more than one line (rare, but Halwa
-// could in principle have more than one box-context unit).
-function contentKey(productId: string, unitLabel?: string) {
-  return unitLabel ? `${productId}::${unitLabel}` : productId;
-}
-function parseContentKey(key: string): { productId: string; unitLabel: string } {
-  const idx = key.indexOf("::");
-  return idx === -1
-    ? { productId: key, unitLabel: "" }
-    : { productId: key.slice(0, idx), unitLabel: key.slice(idx + 2) };
-}
 
 export default function BoxesPage() {
   const { data, loading, error, refresh } = useApi<{ boxes: Box[]; boxContents: BoxContent[] }>(
     "/api/boxes"
   );
   const { data: productData } = useApi<{ products: Product[] }>("/api/products");
-  const { data: unitsData } = useApi<{ units: ProductUnit[] }>("/api/product-units");
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", price: "", description: "" });
@@ -34,7 +19,6 @@ export default function BoxesPage() {
   const [saving, setSaving] = useState(false);
 
   const products = productData?.products.filter((p) => p.active) ?? [];
-  const allUnits = unitsData?.units ?? [];
 
   function closeForm() {
     setShowForm(false);
@@ -47,10 +31,7 @@ export default function BoxesPage() {
     setFormError(null);
     const contentsList = Object.entries(contents)
       .filter(([, qty]) => qty > 0)
-      .map(([key, quantity]) => {
-        const { productId, unitLabel } = parseContentKey(key);
-        return { product_id: productId, quantity, unit_label: unitLabel };
-      });
+      .map(([product_id, quantity]) => ({ product_id, quantity }));
 
     if (!form.name.trim() || !form.price) {
       setFormError("Please enter a name and price.");
@@ -169,40 +150,17 @@ export default function BoxesPage() {
 
           <fieldset className="flex flex-col gap-2">
             <legend className="text-sm font-medium text-maroon-800 mt-1 mb-1">Contents</legend>
-            {products.map((p) => {
-              const boxUnits = allUnits.filter((u) => u.product_id === p.product_id && u.context === "box");
-              if (boxUnits.length === 0) {
-                // Plain product — exactly the same single stepper as before.
-                const key = contentKey(p.product_id);
-                return (
-                  <div key={key} className="flex items-center justify-between">
-                    <span id={`box-content-${key}`} className="text-sm text-maroon-800">
-                      {p.name}
-                    </span>
-                    <QuantitySelector
-                      value={contents[key] ?? 0}
-                      onChange={(v) => setContents({ ...contents, [key]: v })}
-                    />
-                  </div>
-                );
-              }
-              // Multi-unit product (e.g. Halwa) — one stepper per box-unit,
-              // quantity is specified in THAT unit (e.g. pieces).
-              return boxUnits.map((u) => {
-                const key = contentKey(p.product_id, u.label);
-                return (
-                  <div key={key} className="flex items-center justify-between">
-                    <span id={`box-content-${key}`} className="text-sm text-maroon-800">
-                      {p.name} <span className="text-maroon-700/50">({u.label})</span>
-                    </span>
-                    <QuantitySelector
-                      value={contents[key] ?? 0}
-                      onChange={(v) => setContents({ ...contents, [key]: v })}
-                    />
-                  </div>
-                );
-              });
-            })}
+            {products.map((p) => (
+              <div key={p.product_id} className="flex items-center justify-between">
+                <span id={`box-content-${p.product_id}`} className="text-sm text-maroon-800">
+                  {p.name}
+                </span>
+                <QuantitySelector
+                  value={contents[p.product_id] ?? 0}
+                  onChange={(v) => setContents({ ...contents, [p.product_id]: v })}
+                />
+              </div>
+            ))}
           </fieldset>
 
           {formError && <ErrorState message={formError} />}
@@ -266,10 +224,9 @@ export default function BoxesPage() {
                   <ul className="mt-2 text-sm text-maroon-700/70 flex flex-wrap gap-x-4 gap-y-1">
                     {boxContents.map((bc, i) => {
                       const product = productData?.products.find((p) => p.product_id === bc.product_id);
-                      const name = product?.name ?? bc.product_id;
                       return (
                         <li key={i}>
-                          {bc.unit_label ? `${name} (${bc.unit_label})` : name} × {bc.quantity}
+                          {product?.name ?? bc.product_id} × {bc.quantity}
                         </li>
                       );
                     })}
