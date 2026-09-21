@@ -58,7 +58,7 @@ export default function Nav() {
       </nav>
 
       {/* Mobile bottom nav — 3 spacious slots + a raised center action + More */}
-      <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-30 bg-ivory/95 backdrop-blur-sm shadow-[0_-2px_16px_rgba(51,8,16,0.08)] flex items-stretch justify-around pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-sm shadow-[0_-2px_16px_rgba(51,8,16,0.08)] flex items-stretch justify-around pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {PRIMARY_MOBILE_LINKS.slice(0, 2).map((link) => (
           <MobileNavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
         ))}
@@ -99,7 +99,7 @@ export default function Nav() {
           onClick={() => setShowMore(false)}
         >
           <div
-            className="w-full bg-ivory rounded-t-[28px] px-3 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(51,8,16,0.18)]"
+            className="w-full bg-white rounded-t-[28px] px-3 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(51,8,16,0.18)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-10 h-1.5 rounded-full bg-clay-300 mx-auto mb-4" />

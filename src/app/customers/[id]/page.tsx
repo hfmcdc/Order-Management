@@ -94,23 +94,21 @@ export default function CustomerDetailPage() {
               {totals.customer.address ? ` · ${totals.customer.address}` : ""}
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={startEditing}
-              className="touch-target text-sm text-marigold-600 font-medium px-2"
-            >
-              Edit
-            </button>
-            <button
-              onClick={deleteCustomerNow}
-              className="touch-target text-sm text-red-600 font-medium px-2"
-            >
-              Delete
-            </button>
-          </div>
+          <button
+            onClick={startEditing}
+            className="touch-target text-sm text-marigold-600 font-medium px-2 shrink-0"
+          >
+            Edit
+          </button>
+          <button
+            onClick={deleteCustomerNow}
+            className="touch-target text-sm text-red-600 font-medium px-2 shrink-0"
+          >
+            Delete
+          </button>
         </header>
       ) : (
-        <div className="rounded-card border border-clay-300 bg-ivory p-4 flex flex-col gap-3">
+        <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
           <input
             placeholder="Name"
             value={form.name}
@@ -164,7 +162,7 @@ export default function CustomerDetailPage() {
           <Link
             key={order.order_id}
             href={`/orders/${order.order_id}`}
-            className="rounded-card bg-ivory border border-clay-300/70 px-4 py-3 flex items-center justify-between hover:border-marigold-400 transition-colors"
+            className="rounded-card bg-white border border-clay-300/70 px-4 py-3 flex items-center justify-between hover:border-marigold-400 transition-colors"
           >
             <div>
               <p className="font-medium text-maroon-800">{order.order_id}</p>

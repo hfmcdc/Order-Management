@@ -38,8 +38,7 @@ export async function GET(req: NextRequest) {
               return `${box?.name ?? "Box"} × ${item.quantity}`;
             }
             const product = products.find((p) => p.product_id === item.product_id);
-            const name = product?.name ?? "Product";
-            return `${item.unit_label ? `${name} (${item.unit_label})` : name} × ${item.quantity}`;
+            return `${product?.name ?? "Product"} × ${item.quantity}`;
           })
           .join(", ");
         return {

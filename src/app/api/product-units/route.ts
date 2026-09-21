@@ -26,31 +26,9 @@ export async function POST(req: NextRequest) {
     if (body.context !== "box" && body.context !== "individual") {
       return NextResponse.json({ error: "context must be 'box' or 'individual'." }, { status: 400 });
     }
-
-    const label = body.label.trim();
-
-    // Prevent the exact bug this app hit once already: a retried failed
-    // save (e.g. from a transient network error) silently creating a
-    // second unit with the same label, where the wrong one could then get
-    // picked up at order time and save a ₹0 price. If one already exists
-    // for this product+label, this is very likely a retry of the same
-    // add — update its price/context instead of creating a duplicate.
-    const existing = await listProductUnits();
-    const duplicate = existing.find(
-      (u) => u.product_id === body.product_id && u.label.trim().toLowerCase() === label.toLowerCase()
-    );
-    if (duplicate) {
-      return NextResponse.json(
-        {
-          error: `A unit labeled "${label}" already exists for this product (₹${duplicate.price}). Remove it first if you want to replace it, or use a different label.`,
-        },
-        { status: 409 }
-      );
-    }
-
     const unit = await createProductUnit({
       product_id: body.product_id,
-      label,
+      label: body.label.trim(),
       context: body.context,
       price: Number(body.price) || 0,
       active: body.active ?? true,
