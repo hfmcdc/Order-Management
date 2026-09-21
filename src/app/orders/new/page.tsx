@@ -243,7 +243,7 @@ export default function NewOrderPage() {
               value={customerQuery}
               onChange={(e) => searchCustomers(e.target.value)}
               placeholder="Search by name or phone"
-              className="touch-target rounded-card border border-clay-300 px-4 bg-white"
+              className="touch-target rounded-card border border-clay-300 px-4 bg-ivory"
             />
             {customerSearchLoading && <p className="text-sm text-maroon-700/60">Searching…</p>}
             {customerResults.length > 0 && (
@@ -256,7 +256,7 @@ export default function NewOrderPage() {
                       setCustomerResults([]);
                       setCustomerQuery("");
                     }}
-                    className="touch-target text-left rounded-card border border-clay-300 bg-white px-4 flex items-center justify-between hover:border-marigold-400"
+                    className="touch-target text-left rounded-card border border-clay-300 bg-ivory px-4 flex items-center justify-between hover:border-marigold-400"
                   >
                     <span className="font-medium text-maroon-800">{c.name}</span>
                     <span className="text-sm text-maroon-700/60">{c.phone}</span>
@@ -272,7 +272,7 @@ export default function NewOrderPage() {
                 + Create new customer
               </button>
             ) : (
-              <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
+              <div className="rounded-card border border-clay-300 bg-ivory p-4 flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="new-customer-name" className="text-xs font-medium text-maroon-700/70">
                     Name
@@ -341,7 +341,7 @@ export default function NewOrderPage() {
             <div
               key={box.box_id}
               className={clsx(
-                "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-white",
+                "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-ivory",
                 (boxQuantities[box.box_id] ?? 0) > 0 ? "border-marigold-400" : "border-clay-300/70"
               )}
             >
@@ -374,7 +374,7 @@ export default function NewOrderPage() {
                 <div
                   key={key}
                   className={clsx(
-                    "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-white",
+                    "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-ivory",
                     (productQuantities[key] ?? 0) > 0 ? "border-marigold-400" : "border-clay-300/70"
                   )}
                 >
@@ -393,7 +393,7 @@ export default function NewOrderPage() {
             // Multi-unit product (e.g. Halwa) — one stepper per weight/unit,
             // each with its own price, matching how it's actually sold.
             return (
-              <div key={product.product_id} className="rounded-card border border-clay-300/70 bg-white px-4 py-3 flex flex-col gap-2.5">
+              <div key={product.product_id} className="rounded-card border border-clay-300/70 bg-ivory px-4 py-3 flex flex-col gap-2.5">
                 <p className="font-medium text-maroon-800">{product.name}</p>
                 {units.map((u) => {
                   const key = itemKey(product.product_id, u.label);
@@ -423,7 +423,7 @@ export default function NewOrderPage() {
           placeholder="Notes (optional)"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="rounded-card border border-clay-300 px-4 py-3 bg-white min-h-[80px]"
+          className="rounded-card border border-clay-300 px-4 py-3 bg-ivory min-h-[80px]"
         />
       </section>
 

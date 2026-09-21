@@ -47,12 +47,12 @@ export default function OrdersPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, phone, or order ID"
-          className="touch-target flex-1 rounded-2xl bg-white px-4 shadow-sm"
+          className="touch-target flex-1 rounded-2xl bg-ivory px-4 shadow-sm"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="touch-target rounded-2xl bg-white px-4 shadow-sm"
+          className="touch-target rounded-2xl bg-ivory px-4 shadow-sm"
         >
           <option value="All">All statuses</option>
           {ORDER_STATUSES.map((s) => (

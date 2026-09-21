@@ -155,7 +155,7 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
             <div
               key={box.box_id}
               className={clsx(
-                "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-white",
+                "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-ivory",
                 (boxQuantities[box.box_id] ?? 0) > 0 ? "border-marigold-400" : "border-clay-300/70"
               )}
             >
@@ -186,7 +186,7 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
                 <div
                   key={key}
                   className={clsx(
-                    "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-white",
+                    "rounded-card border px-4 py-3 flex items-center justify-between gap-3 bg-ivory",
                     (productQuantities[key] ?? 0) > 0 ? "border-marigold-400" : "border-clay-300/70"
                   )}
                 >
@@ -205,7 +205,7 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
             return (
               <div
                 key={product.product_id}
-                className="rounded-card border border-clay-300/70 bg-white px-4 py-3 flex flex-col gap-2.5"
+                className="rounded-card border border-clay-300/70 bg-ivory px-4 py-3 flex flex-col gap-2.5"
               >
                 <p className="font-medium text-maroon-800">{product.name}</p>
                 {units.map((u) => {
@@ -235,7 +235,7 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
           placeholder="Notes (optional)"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="rounded-card border border-clay-300 px-4 py-3 bg-white min-h-[80px]"
+          className="rounded-card border border-clay-300 px-4 py-3 bg-ivory min-h-[80px]"
         />
       </section>
 
