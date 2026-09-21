@@ -129,7 +129,7 @@ export default function BoxesPage() {
       )}
 
       {showForm && products.length > 0 && (
-        <div className="rounded-card border border-clay-300 bg-ivory p-4 flex flex-col gap-3">
+        <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <label htmlFor="box-name" className="text-xs font-medium text-maroon-700/70">
               Box name
@@ -240,7 +240,7 @@ export default function BoxesPage() {
           {data.boxes.map((box) => {
             const boxContents = data.boxContents.filter((bc) => bc.box_id === box.box_id);
             return (
-              <div key={box.box_id} className="rounded-card bg-ivory border border-clay-300/70 px-4 py-3">
+              <div key={box.box_id} className="rounded-card bg-white border border-clay-300/70 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-maroon-800">

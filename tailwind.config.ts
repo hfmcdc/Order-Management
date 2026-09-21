@@ -8,33 +8,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // "Saffron Noir" — deep bordeaux + burnished copper on warm stone.
-        // No pure white or black anywhere; every surface stays in the same
-        // warm cream/tan family, just at different depths.
+        // Matches the official Diwali 2026 logo: rich orange/gold body,
+        // deep maroon ribbon and accents, warm cream backgrounds.
         marigold: {
-          50: "#F7EEE3",
-          100: "#EDD6B8",
-          400: "#C4864B",
-          500: "#B87333", // Accent
-          600: "#96602A",
+          50: "#FFF8E9",
+          100: "#FFEAC0",
+          400: "#F5A623",
+          500: "#E8890B",
+          600: "#C46F05",
         },
         maroon: {
-          700: "#6B2038",
-          800: "#4A1526", // Primary
-          900: "#35101C",
+          700: "#6B1220",
+          800: "#4A0D17",
+          900: "#330810",
         },
-        ivory: "#F6EEDF", // Surface — warm sand, used for cards and light text-on-dark
+        ivory: "#FFF9EE",
         gold: {
-          300: "#D9B77E",
-          500: "#B87333",
+          300: "#F6D77A",
+          500: "#E0AA3E",
         },
         leaf: {
           500: "#3E7A4F",
           600: "#2F5F3D",
         },
         clay: {
-          100: "#EFE6D6",
-          300: "#D9C7A8",
+          100: "#F4E8D6",
+          300: "#E2C79A",
         },
       },
       fontFamily: {

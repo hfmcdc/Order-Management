@@ -26,11 +26,11 @@ export async function GET() {
       const customer = customers.find((c) => c.customer_id === order.customer_id);
       const items = orderItems.filter((i) => i.order_id === order.order_id);
       const productNames = items
-        .map((i) => {
-          if (i.item_type === "box") return boxes.find((b) => b.box_id === i.box_id)?.name ?? "Box";
-          const name = products.find((p) => p.product_id === i.product_id)?.name ?? "Product";
-          return i.unit_label ? `${name} (${i.unit_label})` : name;
-        })
+        .map((i) =>
+          i.item_type === "box"
+            ? boxes.find((b) => b.box_id === i.box_id)?.name ?? "Box"
+            : products.find((p) => p.product_id === i.product_id)?.name ?? "Product"
+        )
         .join("; ");
       const quantities = items.map((i) => i.quantity).join("; ");
       const total = items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);

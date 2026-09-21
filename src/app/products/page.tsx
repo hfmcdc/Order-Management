@@ -87,7 +87,7 @@ export default function ProductsPage() {
       </header>
 
       {showForm && (
-        <div className="rounded-card border border-clay-300 bg-ivory p-4 flex flex-col gap-3">
+        <div className="rounded-card border border-clay-300 bg-white p-4 flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <label htmlFor="product-name" className="text-xs font-medium text-maroon-700/70">
               Product name
@@ -163,7 +163,7 @@ export default function ProductsPage() {
           {data.products.map((p) => {
             const units = (unitsData?.units ?? []).filter((u) => u.product_id === p.product_id);
             return (
-              <div key={p.product_id} className="rounded-card bg-ivory border border-clay-300/70 overflow-hidden">
+              <div key={p.product_id} className="rounded-card bg-white border border-clay-300/70 overflow-hidden">
                 <button
                   onClick={() => setExpanded(expanded === p.product_id ? null : p.product_id)}
                   className="w-full touch-target px-4 py-3 flex items-center justify-between text-left"
@@ -282,7 +282,7 @@ function ProductUnitsManager({
       {units.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {units.map((u) => (
-            <div key={u.unit_id} className="flex items-center justify-between text-sm bg-ivory rounded-xl px-3 py-2">
+            <div key={u.unit_id} className="flex items-center justify-between text-sm bg-white rounded-xl px-3 py-2">
               <span className="text-maroon-800">
                 {u.label} <span className="text-maroon-700/50">· {u.context === "box" ? "box" : "individual"}</span>
               </span>
@@ -305,7 +305,7 @@ function ProductUnitsManager({
           + Add a unit
         </button>
       ) : (
-        <div className="flex flex-col gap-2 bg-ivory rounded-xl p-3">
+        <div className="flex flex-col gap-2 bg-white rounded-xl p-3">
           <input
             placeholder="Label, e.g. Piece or 250g"
             value={label}
@@ -320,7 +320,7 @@ function ProductUnitsManager({
                 className={`touch-target flex-1 rounded-xl text-sm font-medium border ${
                   context === c
                     ? "bg-maroon-800 text-white border-maroon-800"
-                    : "bg-ivory text-maroon-800 border-clay-300"
+                    : "bg-white text-maroon-800 border-clay-300"
                 }`}
               >
                 {c === "box" ? "For boxes" : "For individual sale"}

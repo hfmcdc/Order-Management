@@ -198,7 +198,7 @@ export default function OrderDetailPage() {
           <div className="flex gap-2">
             <button
               onClick={() => window.print()}
-              className="touch-target rounded-full bg-ivory border border-clay-300 text-maroon-800 text-sm font-medium px-4"
+              className="touch-target rounded-full bg-white border border-clay-300 text-maroon-800 text-sm font-medium px-4"
             >
               Print
             </button>
@@ -231,7 +231,7 @@ export default function OrderDetailPage() {
           </div>
         </header>
 
-        <section className="rounded-card bg-ivory border border-clay-300/70 p-4 grid grid-cols-2 gap-4 text-sm">
+        <section className="rounded-card bg-white border border-clay-300/70 p-4 grid grid-cols-2 gap-4 text-sm">
           <Info label="Order date" value={order.order_date} />
           <Info label="Boxes" value={String(order.totalBoxes)} />
           <Info label="Individual items" value={String(order.totalIndividualItems)} />
@@ -252,7 +252,7 @@ export default function OrderDetailPage() {
               </button>
             )}
           </div>
-          <div className="rounded-card bg-ivory border border-clay-300/70 divide-y divide-clay-300/50">
+          <div className="rounded-card bg-white border border-clay-300/70 divide-y divide-clay-300/50">
             {order.items.map((item) => (
               <div key={item.order_item_id} className="px-4 py-2.5 flex items-center justify-between text-sm">
                 <span className="text-maroon-800">
@@ -268,7 +268,7 @@ export default function OrderDetailPage() {
         {order.notes && (
           <section>
             <h2 className="font-display font-600 text-lg text-maroon-800 mb-1">Notes</h2>
-            <p className="text-sm text-maroon-700/80 bg-ivory rounded-card border border-clay-300/70 p-3">
+            <p className="text-sm text-maroon-700/80 bg-white rounded-card border border-clay-300/70 p-3">
               {order.notes}
             </p>
           </section>
@@ -285,7 +285,7 @@ export default function OrderDetailPage() {
                 className={`touch-target px-4 rounded-full text-sm font-medium border ${
                   order.status === s
                     ? "bg-maroon-800 text-white border-maroon-800"
-                    : "bg-ivory text-maroon-800 border-clay-300"
+                    : "bg-white text-maroon-800 border-clay-300"
                 }`}
               >
                 {s}
@@ -303,7 +303,7 @@ export default function OrderDetailPage() {
                 className={`touch-target px-4 rounded-full text-sm font-medium border ${
                   order.payment_status === s
                     ? "bg-maroon-800 text-white border-maroon-800"
-                    : "bg-ivory text-maroon-800 border-clay-300"
+                    : "bg-white text-maroon-800 border-clay-300"
                 }`}
               >
                 {s}
@@ -337,7 +337,7 @@ export default function OrderDetailPage() {
 
       {deliveredPrompt === "ask-paid" && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
-          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
+          <div className="w-full md:w-96 rounded-card bg-white p-5 flex flex-col gap-3">
             <h3 className="font-display font-700 text-lg text-maroon-800">Was this order paid?</h3>
             <p className="text-sm text-maroon-700/70">You&apos;re marking {order.order_id} as Delivered.</p>
             <button
@@ -350,7 +350,7 @@ export default function OrderDetailPage() {
             <button
               disabled={busy}
               onClick={markDeliveredUnpaid}
-              className="touch-target rounded-full bg-ivory border border-clay-300 text-maroon-800 font-medium"
+              className="touch-target rounded-full bg-white border border-clay-300 text-maroon-800 font-medium"
             >
               Not yet
             </button>
@@ -366,7 +366,7 @@ export default function OrderDetailPage() {
 
       {deliveredPrompt === "ask-method" && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
-          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
+          <div className="w-full md:w-96 rounded-card bg-white p-5 flex flex-col gap-3">
             <h3 className="font-display font-700 text-lg text-maroon-800">Paid by cash or UPI?</h3>
             <button
               disabled={busy}
@@ -394,7 +394,7 @@ export default function OrderDetailPage() {
 
       {showCancelChoice && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
-          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
+          <div className="w-full md:w-96 rounded-card bg-white p-5 flex flex-col gap-3">
             <h3 className="font-display font-700 text-lg text-maroon-800">What should happen to this order?</h3>
             <p className="text-sm text-maroon-700/70">
               You can mark it as Cancelled (kept in your records, excluded from production) or delete it
@@ -416,7 +416,7 @@ export default function OrderDetailPage() {
                 setShowCancelChoice(false);
                 patchOrder({ action: "delete" });
               }}
-              className="touch-target rounded-full bg-ivory border border-red-300 text-red-600 font-medium"
+              className="touch-target rounded-full bg-white border border-red-300 text-red-600 font-medium"
             >
               Delete permanently
             </button>

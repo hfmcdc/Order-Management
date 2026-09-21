@@ -55,7 +55,7 @@ export default function ProductionPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a product (e.g. Halwa) for its total…"
-          className="touch-target rounded-2xl bg-ivory px-4 shadow-sm"
+          className="touch-target rounded-2xl bg-white px-4 shadow-sm"
         />
         {query.trim() && (
           <div className="flex flex-col gap-2">
@@ -63,7 +63,7 @@ export default function ProductionPage() {
               <p className="text-sm text-maroon-700/60 px-1">No product matches &quot;{query}&quot;.</p>
             ) : (
               searchMatches.map((row) => (
-                <div key={`${row.product_id}::${row.unit_label}`} className="card px-5 py-4">
+                <div key={row.product_id} className="card px-5 py-4">
                   <p className="font-display font-600 text-maroon-800 mb-2">{row.name}</p>
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div>
@@ -92,7 +92,7 @@ export default function ProductionPage() {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="touch-target rounded-2xl bg-ivory px-4 shadow-sm"
+          className="touch-target rounded-2xl bg-white px-4 shadow-sm"
         />
         {date && (
           <button onClick={() => setDate("")} className="text-sm text-marigold-600 font-medium">
@@ -174,7 +174,7 @@ function ProductionGroup({ title, rows }: { title: string; rows: ProductionRow[]
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={`${row.product_id}::${row.unit_label}`} className="border-t border-clay-100">
+              <tr key={row.product_id} className="border-t border-clay-100">
                 <td className="px-4 py-2.5">{row.name}</td>
                 <td className="px-4 py-2.5 text-right">{row.fromBoxes}</td>
                 <td className="px-4 py-2.5 text-right">{row.individual}</td>
