@@ -60,7 +60,16 @@ Open http://localhost:3000.
    | `Boxes` | `box_id, name, price, description, active` |
    | `BoxContents` | `box_id, product_id, quantity` |
    | `Orders` | `order_id, customer_id, order_date, fulfillment_type, fulfillment_date, status, payment_status, notes, created_at, updated_at` |
-   | `OrderItems` | `order_item_id, order_id, item_type, product_id, box_id, quantity, unit_price` |
+   | `OrderItems` | `order_item_id, order_id, item_type, product_id, box_id, quantity, unit_price, unit_label` |
+   | `ProductUnits` | `unit_id, product_id, label, context, price, active` |
+
+   `unit_label` is a newer addition — if your sheet already exists from before, add
+   that as an extra header in `BoxContents` (column D) and `OrderItems` (column H).
+   `ProductUnits` is a whole new tab — create it the same way as the others, with
+   just that one header row; the app fills it in as you add units on the Products
+   page. Both only matter if you use the multi-unit feature (e.g. Halwa sold as
+   pieces in boxes and by weight individually) — leave them alone and everything
+   else works exactly as before.
 
 3. Copy the Sheet ID from the URL: `https://docs.google.com/spreadsheets/d/<THIS_PART>/edit`.
 

@@ -10,7 +10,7 @@ export default function SettingsPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display font-600 text-lg text-maroon-800">Export data</h2>
-        <div className="rounded-card border border-clay-300/70 bg-white p-4 flex flex-col gap-3">
+        <div className="rounded-card border border-clay-300/70 bg-ivory p-4 flex flex-col gap-3">
           <ExportButton href="/api/export/orders" label="Export Orders CSV" />
           <ExportButton href="/api/export/customers" label="Export Customers CSV" />
           <ExportButton href="/api/export/products" label="Export Products CSV" />
