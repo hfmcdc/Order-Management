@@ -27,7 +27,7 @@ export default function QuantitySelector({
       <button
         type="button"
         onClick={() => onChange(value + 1)}
-        className="touch-target w-11 h-11 rounded-full bg-marigold-500 text-white text-xl font-semibold flex items-center justify-center active:scale-95 transition-transform"
+        className="touch-target w-11 h-11 rounded-full bg-marigold-500 text-ink text-xl font-semibold flex items-center justify-center active:scale-95 transition-transform"
         aria-label="Increase quantity"
       >
         +

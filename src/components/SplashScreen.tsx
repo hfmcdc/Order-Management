@@ -31,7 +31,7 @@ export default function SplashScreen() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-maroon-900 transition-opacity"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-wine-900 transition-opacity"
       style={{
         opacity: phase === "fading" ? 0 : 1,
         transitionDuration: `${FADE_MS}ms`,
@@ -51,7 +51,7 @@ export default function SplashScreen() {
         Vaiga Sweets &amp; Snacks
       </p>
       <p
-        className="text-marigold-100/80 text-sm mt-1"
+        className="text-cream/80 text-sm mt-1"
         style={{ animation: "splash-rise 0.6s ease-out 0.1s both" }}
       >
         Diwali 2026 Order Management

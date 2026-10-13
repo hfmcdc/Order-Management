@@ -24,26 +24,26 @@ export async function buildInvoicePdf(order: InvoiceOrder): Promise<File> {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.setTextColor("#4A0D17");
+  doc.setTextColor("#4A1526");
   doc.text(BUSINESS_NAME.toUpperCase(), marginX, y);
 
   y += 20;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.setTextColor("#333333");
+  doc.setTextColor("#5C4A3F");
   doc.text(BUSINESS_ADDRESS, marginX, y);
   y += 14;
   doc.text(`Phone: ${BUSINESS_PHONE}`, marginX, y);
 
   y += 28;
-  doc.setDrawColor("#E0AA3E");
+  doc.setDrawColor("#B87333");
   doc.setLineWidth(1);
   doc.line(marginX, y, 547, y);
 
   y += 24;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.setTextColor("#000000");
+  doc.setTextColor("#4A1526");
   doc.text(`Order: ${publicOrderCode(order.order_id)}`, marginX, y);
   y += 16;
   doc.setFont("helvetica", "normal");
@@ -62,7 +62,7 @@ export async function buildInvoicePdf(order: InvoiceOrder): Promise<File> {
   doc.text("Price", 420, y, { align: "right" });
   doc.text("Subtotal", 547, y, { align: "right" });
   y += 8;
-  doc.setDrawColor("#CCCCCC");
+  doc.setDrawColor("#D9C7A8");
   doc.line(marginX, y, 547, y);
 
   doc.setFont("helvetica", "normal");

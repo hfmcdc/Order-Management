@@ -45,15 +45,15 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       {/* Hero banner */}
-      <div className="relative rounded-[26px] overflow-hidden bg-gradient-to-br from-maroon-900 via-maroon-800 to-maroon-700 px-6 py-7 md:px-8 md:py-9 flex items-center gap-4 shadow-lg shadow-maroon-900/15">
+      <div className="relative rounded-[26px] overflow-hidden bg-gradient-to-br from-wine-900 via-wine-800 to-wine-700 px-6 py-7 md:px-8 md:py-9 flex items-center gap-4 shadow-lg shadow-black/40">
         {/* subtle rangoli-inspired decoration, kept low-opacity so it never fights the text */}
         <svg
           className="absolute -right-6 -top-6 w-40 h-40 md:w-56 md:h-56 opacity-[0.08] pointer-events-none"
           viewBox="0 0 200 200"
           fill="none"
         >
-          <circle cx="100" cy="100" r="90" stroke="#F6D77A" strokeWidth="1.5" />
-          <circle cx="100" cy="100" r="65" stroke="#F6D77A" strokeWidth="1.5" />
+          <circle cx="100" cy="100" r="90" stroke="#D9B77E" strokeWidth="1.5" />
+          <circle cx="100" cy="100" r="65" stroke="#D9B77E" strokeWidth="1.5" />
           {Array.from({ length: 12 }).map((_, i) => (
             <line
               key={i}
@@ -61,7 +61,7 @@ export default function DashboardPage() {
               y1="100"
               x2={100 + 90 * Math.cos((i * Math.PI) / 6)}
               y2={100 + 90 * Math.sin((i * Math.PI) / 6)}
-              stroke="#F6D77A"
+              stroke="#D9B77E"
               strokeWidth="1.5"
             />
           ))}
@@ -70,8 +70,8 @@ export default function DashboardPage() {
           <Image src="/logo.png" alt="Vaiga Sweets & Snacks" fill sizes="80px" />
         </div>
         <div className="z-10">
-          <h1 className="font-display font-700 text-xl md:text-2xl text-ivory">Welcome back!</h1>
-          <p className="text-marigold-100/80 text-sm mt-1">Let&apos;s make this Diwali sweeter.</p>
+          <h1 className="font-display font-700 text-xl md:text-2xl text-cream">Welcome back!</h1>
+          <p className="text-cream/80 text-sm mt-1">Let&apos;s make this Diwali sweeter.</p>
         </div>
       </div>
 
@@ -90,25 +90,25 @@ export default function DashboardPage() {
           <section className="flex flex-wrap gap-2.5">
             <Link
               href="/orders/new"
-              className="touch-target flex items-center rounded-full bg-marigold-500 text-white font-semibold px-5 shadow-md shadow-marigold-500/25 hover:bg-marigold-600 transition-colors"
+              className="touch-target flex items-center rounded-full bg-marigold-500 text-ink font-semibold px-5 shadow-md shadow-marigold-500/25 hover:bg-marigold-600 transition-colors"
             >
               + New Order
             </Link>
             <Link
               href="/orders"
-              className="touch-target flex items-center rounded-full bg-white text-maroon-800 font-medium px-5 shadow-sm"
+              className="touch-target flex items-center rounded-full bg-ivory text-maroon-800 font-medium px-5 shadow-sm"
             >
               View Orders
             </Link>
             <Link
               href="/customers"
-              className="touch-target flex items-center rounded-full bg-white text-maroon-800 font-medium px-5 shadow-sm"
+              className="touch-target flex items-center rounded-full bg-ivory text-maroon-800 font-medium px-5 shadow-sm"
             >
               Customers
             </Link>
             <Link
               href="/production"
-              className="touch-target flex items-center rounded-full bg-white text-maroon-800 font-medium px-5 shadow-sm"
+              className="touch-target flex items-center rounded-full bg-ivory text-maroon-800 font-medium px-5 shadow-sm"
             >
               Production
             </Link>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="card divide-y divide-clay-100 overflow-hidden">
                   {data.topProducts.map((p, i) => (
-                    <div key={p.product_id} className="px-5 py-3.5 flex items-center justify-between text-sm">
+                    <div key={`${p.product_id}::${p.unit_label}`} className="px-5 py-3.5 flex items-center justify-between text-sm">
                       <span className="text-maroon-800 flex items-center">
                         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-marigold-100 text-marigold-600 text-xs font-semibold mr-3 shrink-0">
                           {i + 1}
@@ -231,7 +231,7 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {data.todaysProduction.map((row) => (
-                      <tr key={row.product_id} className="border-t border-clay-100">
+                      <tr key={`${row.product_id}::${row.unit_label}`} className="border-t border-clay-100">
                         <td className="px-5 py-3">{row.name}</td>
                         <td className="px-5 py-3 text-right">{row.fromBoxes}</td>
                         <td className="px-5 py-3 text-right">{row.individual}</td>

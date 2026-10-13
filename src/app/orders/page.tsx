@@ -36,7 +36,7 @@ export default function OrdersPage() {
         </div>
         <Link
           href="/orders/new"
-          className="hidden md:flex touch-target items-center rounded-full bg-marigold-500 text-white font-semibold px-5 shadow-md shadow-marigold-500/25 hover:bg-marigold-600 transition-colors"
+          className="hidden md:flex touch-target items-center rounded-full bg-marigold-500 text-ink font-semibold px-5 shadow-md shadow-marigold-500/25 hover:bg-marigold-600 transition-colors"
         >
           + New Order
         </Link>
@@ -47,12 +47,12 @@ export default function OrdersPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, phone, or order ID"
-          className="touch-target flex-1 rounded-2xl bg-white px-4 shadow-sm"
+          className="touch-target flex-1 rounded-2xl bg-ivory px-4 shadow-sm"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="touch-target rounded-2xl bg-white px-4 shadow-sm"
+          className="touch-target rounded-2xl bg-ivory px-4 shadow-sm"
         >
           <option value="All">All statuses</option>
           {ORDER_STATUSES.map((s) => (

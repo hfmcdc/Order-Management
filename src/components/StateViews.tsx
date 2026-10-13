@@ -13,7 +13,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       {onRetry && (
         <button
           onClick={onRetry}
-          className="self-start rounded-full bg-maroon-800 text-white text-sm px-4 py-2 touch-target"
+          className="self-start rounded-full bg-wine-700 text-white text-sm px-4 py-2 touch-target"
         >
           Try again
         </button>

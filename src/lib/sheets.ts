@@ -15,6 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import { google, sheets_v4 } from "googleapis";
+import { rowToObject } from "./sheet-parse";
 
 const SHEET_TABS = {
   Customers: "Customers",
@@ -470,46 +471,6 @@ async function getTabSheetId(tab: SheetTab): Promise<number> {
   }
   sheetIdCache.set(tab, id);
   return id;
-}
-
-// Columns that are meant to hold ISO date strings ("2026-09-15") or
-// timestamps ("2026-09-15T12:00:00.000Z"). Rows written before this app
-// switched to RAW input could have had these auto-converted by Google
-// Sheets into its internal date serial number (days since 1899-12-30) —
-// this recovers a readable date from that serial so old rows display
-// correctly too, not just new ones.
-const DATE_COLUMNS = new Set([
-  "order_date",
-  "fulfillment_date",
-  "created_at",
-  "updated_at",
-]);
-
-function serialToIsoDate(serial: number): string {
-  const ms = (serial - 25569) * 86400 * 1000; // 25569 = days between 1899-12-30 and 1970-01-01
-  return new Date(ms).toISOString().slice(0, 10);
-}
-
-function rowToObject<T>(row: any[], columns: string[]): T {
-  const obj: any = {};
-  columns.forEach((col, idx) => {
-    let value = parseCell(row[idx]);
-    if (DATE_COLUMNS.has(col) && typeof value === "number" && value > 10000) {
-      value = serialToIsoDate(value);
-    }
-    obj[col] = value;
-  });
-  return obj as T;
-}
-
-function parseCell(value: any): any {
-  if (value === undefined || value === "") return "";
-  if (value === "TRUE") return true;
-  if (value === "FALSE") return false;
-  if (typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value)) {
-    return Number(value);
-  }
-  return value;
 }
 
 function stringifyCell(value: any): string {

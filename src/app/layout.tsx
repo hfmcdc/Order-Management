@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import SplashScreen from "@/components/SplashScreen";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
-const poppins = Poppins({
+// Playfair Display: a serif with real editorial weight — reads as a premium
+// gifting/sweets brand rather than the generic-SaaS feel of a geometric
+// grotesk like the previous Poppins.
+const playfair = Playfair_Display({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-display",
@@ -31,14 +34,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4A0D17",
+  themeColor: "#14100E",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className="font-sans">
         <SplashScreen />
         <div className="min-h-screen flex flex-col md:flex-row">

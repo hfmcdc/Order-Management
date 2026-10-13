@@ -30,7 +30,7 @@ export default function CustomersPage() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search customers"
-        className="touch-target rounded-card border border-clay-300 px-4 bg-white"
+        className="touch-target rounded-card border border-clay-300 px-4 bg-ivory"
       />
 
       {loading && <LoadingState label="Loading customers…" />}
@@ -46,7 +46,7 @@ export default function CustomersPage() {
             <Link
               key={c.customer_id}
               href={`/customers/${c.customer_id}`}
-              className="rounded-card bg-white border border-clay-300/70 px-4 py-3 flex items-center justify-between hover:border-marigold-400 transition-colors"
+              className="rounded-card bg-ivory border border-clay-300/70 px-4 py-3 flex items-center justify-between hover:border-marigold-400 transition-colors"
             >
               <div>
                 <p className="font-medium text-maroon-800">{c.name}</p>
