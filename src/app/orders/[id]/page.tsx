@@ -27,6 +27,8 @@ export default function OrderDetailPage() {
   const [sharing, setSharing] = useState(false);
   // "ask-paid" = "was this paid?" step; "ask-method" = "cash or UPI?" step
   const [deliveredPrompt, setDeliveredPrompt] = useState<"ask-paid" | "ask-method" | null>(null);
+  // Same "cash or UPI?" question, but for tapping Paid directly in the Payment row
+  const [paymentPrompt, setPaymentPrompt] = useState(false);
 
   async function patchOrder(body: Record<string, any>) {
     setBusy(true);
@@ -118,6 +120,19 @@ export default function OrderDetailPage() {
       return;
     }
     patchOrder({ status: s });
+  }
+
+  function handlePaymentClick(s: string) {
+    if (s === "Paid") {
+      setPaymentPrompt(true);
+      return;
+    }
+    patchOrder({ payment_status: s });
+  }
+
+  function markPaid(method: PaymentMethod) {
+    setPaymentPrompt(false);
+    patchOrder({ payment_status: "Paid", payment_method: method });
   }
 
   function markDeliveredUnpaid() {
@@ -299,7 +314,7 @@ export default function OrderDetailPage() {
               <button
                 key={s}
                 disabled={busy}
-                onClick={() => patchOrder({ payment_status: s })}
+                onClick={() => handlePaymentClick(s)}
                 className={`touch-target px-4 rounded-full text-sm font-medium border ${
                   order.payment_status === s
                     ? "bg-wine-700 text-white border-wine-700"
@@ -384,6 +399,34 @@ export default function OrderDetailPage() {
             </button>
             <button
               onClick={() => setDeliveredPrompt(null)}
+              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
+            >
+              Never mind
+            </button>
+          </div>
+        </div>
+      )}
+
+      {paymentPrompt && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
+          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
+            <h3 className="font-display font-700 text-lg text-maroon-800">Paid by cash or UPI?</h3>
+            <button
+              disabled={busy}
+              onClick={() => markPaid("Cash")}
+              className="touch-target rounded-full bg-wine-700 text-white font-medium"
+            >
+              Cash
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => markPaid("UPI")}
+              className="touch-target rounded-full bg-wine-700 text-white font-medium"
+            >
+              UPI
+            </button>
+            <button
+              onClick={() => setPaymentPrompt(false)}
               className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
             >
               Never mind
