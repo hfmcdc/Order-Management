@@ -1,0 +1,125 @@
+/* Compact customer receipts: 8 per A4 sheet (2 across x 4 down), cut along
+   the dashed lines. Everything inside a slip is sized in em so one
+   font-size change shrinks the whole slip to fit its cell. */
+
+.rc-sheet {
+  width: 210mm;
+  height: 297mm;
+  box-sizing: border-box;
+  padding: 14mm 12mm;
+  margin-bottom: 16px;
+  background: #ffffff;
+  color: #1a1a1a;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+}
+
+.rc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 93mm);
+  grid-template-rows: repeat(4, 67mm);
+  width: 186mm;
+  height: 268mm;
+  border-top: 1px dashed #8a8a8a;
+  border-left: 1px dashed #8a8a8a;
+}
+
+.rc-slip {
+  box-sizing: border-box;
+  padding: 3mm 3.5mm;
+  overflow: hidden;
+  border-right: 1px dashed #8a8a8a;
+  border-bottom: 1px dashed #8a8a8a;
+}
+
+.rc-body {
+  font-family: var(--font-body), Inter, system-ui, sans-serif;
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+
+.rc-shop {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  font-size: 1.45em;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+.rc-sub { margin: 0.15em 0 0; text-align: center; font-size: 0.85em; }
+
+.rc-rule { border: 0; border-top: 1px solid #1a1a1a; margin: 0.45em 0; }
+
+.rc-row { display: flex; justify-content: space-between; gap: 0.6em; }
+.rc-row + .rc-row { margin-top: 0.1em; }
+.rc-label {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  margin-right: 0.3em;
+}
+
+.rc-items { width: 100%; border-collapse: collapse; margin-top: 0.45em; }
+.rc-items th {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.85em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: right;
+  padding: 0.18em 0.3em;
+  border-top: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+}
+.rc-items th.item { text-align: left; padding-left: 0; }
+.rc-items td {
+  padding: 0.16em 0.3em;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid #d4d4d4;
+}
+.rc-items td.item { text-align: left; white-space: normal; padding-left: 0; }
+.rc-items td:last-child, .rc-items th:last-child { padding-right: 0; }
+.rc-items tr { page-break-inside: avoid; break-inside: avoid; }
+
+.rc-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 0.4em;
+  padding: 0.3em 0;
+  border-top: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+}
+.rc-total .t {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.rc-total .a { font-weight: 700; font-size: 1.5em; }
+
+.rc-thanks { margin: 0.4em 0 0; text-align: center; font-size: 0.9em; }
+.rc-thanks b { font-family: var(--font-display), Georgia, serif; }
+
+/* On screen the stack of sheets is scaled to fit a phone; never in print. */
+.rc-scale { transform-origin: top left; }
+
+@media print {
+  .rc-sheet {
+    width: 186mm;
+    height: 268mm;
+    padding: 0;
+    margin: 0;
+    box-shadow: none !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .rc-sheet:last-child { page-break-after: auto; break-after: auto; }
+  .rc-scale { transform: none !important; width: auto !important; }
+  .rc-viewport { height: auto !important; overflow: visible !important; }
+
+  body:has(.receipt-page) main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  body:has(.receipt-page) .min-h-screen { min-height: 0 !important; }
+}
