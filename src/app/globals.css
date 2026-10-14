@@ -65,7 +65,6 @@ button, a, input, select, textarea {
 }
 
 @page {
-  size: A4;
   margin: 14mm 12mm;
 }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { ProductionRow } from "@/lib/types";
@@ -16,8 +15,6 @@ interface ProductionResponse {
 export default function ProductionPage() {
   const [date, setDate] = useState<string>("");
   const [query, setQuery] = useState("");
-  // Receipts: every order is selected by default; untick the ones to skip.
-  const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const url = date ? `/api/production?date=${date}` : "/api/production";
   const { data, loading, error, refresh } = useApi<ProductionResponse>(url);
 
@@ -29,18 +26,6 @@ export default function ProductionPage() {
     query.trim() && data
       ? data.rows.filter((r) => r.name.toLowerCase().includes(query.trim().toLowerCase()))
       : [];
-
-  const allOrderIds = data?.customerOrders.map((co) => co.order_id) ?? [];
-  const selectedIds = allOrderIds.filter((id) => !skipped.has(id));
-  const toggleSkipped = (id: string) =>
-    setSkipped((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  const toggleAll = () =>
-    setSkipped(selectedIds.length === allOrderIds.length ? new Set(allOrderIds) : new Set());
 
   return (
     <div className="flex flex-col gap-5 pb-8">
@@ -145,26 +130,7 @@ export default function ProductionPage() {
 
           {data.customerOrders.length > 0 && (
             <section className="flex flex-col gap-2">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <h2 className="font-display font-600 text-lg text-maroon-800">Customer orders</h2>
-                <div className="no-print flex items-center gap-3">
-                  <button onClick={toggleAll} className="text-sm text-marigold-600 font-medium touch-target">
-                    {selectedIds.length === allOrderIds.length ? "Select none" : "Select all"}
-                  </button>
-                  {selectedIds.length > 0 ? (
-                    <Link
-                      href={`/receipts?ids=${encodeURIComponent(selectedIds.join(","))}`}
-                      className="inline-flex items-center touch-target rounded-full bg-wine-700 text-white text-sm font-medium px-5"
-                    >
-                      Print receipts ({selectedIds.length})
-                    </Link>
-                  ) : (
-                    <span className="inline-flex items-center touch-target rounded-full bg-clay-100 text-maroon-700/50 text-sm font-medium px-5">
-                      Print receipts (0)
-                    </span>
-                  )}
-                </div>
-              </div>
+              <h2 className="font-display font-600 text-lg text-maroon-800">Customer orders</h2>
               <div className="card overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -176,29 +142,8 @@ export default function ProductionPage() {
                   <tbody>
                     {data.customerOrders.map((co) => (
                       <tr key={co.order_id} className="border-t border-clay-100 align-top">
-                        <td className="px-4 py-2.5 font-medium text-maroon-800">
-                          <label className="flex items-start gap-2.5">
-                            <input
-                              type="checkbox"
-                              checked={!skipped.has(co.order_id)}
-                              onChange={() => toggleSkipped(co.order_id)}
-                              className="no-print mt-0.5 h-5 w-5 shrink-0 accent-[#D9A441]"
-                              aria-label={`Include receipt for ${co.customerName}`}
-                            />
-                            <span>{co.customerName}</span>
-                          </label>
-                        </td>
-                        <td className="px-4 py-2.5 text-maroon-700/80">
-                          {co.summary}
-                          <div className="no-print mt-2">
-                            <Link
-                              href={`/receipts?ids=${encodeURIComponent(co.order_id)}`}
-                              className="inline-flex items-center touch-target rounded-full bg-wine-700 text-white text-xs font-medium px-4"
-                            >
-                              View Receipt
-                            </Link>
-                          </div>
-                        </td>
+                        <td className="px-4 py-2.5 font-medium text-maroon-800">{co.customerName}</td>
+                        <td className="px-4 py-2.5 text-maroon-700/80">{co.summary}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -34,7 +34,7 @@ export default function Nav() {
   return (
     <>
       {/* Desktop side rail */}
-      <nav className="no-print hidden md:flex md:flex-col md:w-56 md:shrink-0 border-r border-clay-300/60 bg-ivory px-4 py-6 gap-1">
+      <nav className="hidden md:flex md:flex-col md:w-56 md:shrink-0 border-r border-clay-300/60 bg-ivory px-4 py-6 gap-1">
         <div className="mb-6 px-2 flex items-center gap-2.5">
           <div className="w-9 h-9 relative shrink-0">
             <Image src="/logo.png" alt="Vaiga" fill sizes="36px" />
