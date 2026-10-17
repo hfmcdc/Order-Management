@@ -283,7 +283,7 @@ export default function OrderDetailPage() {
         {order.notes && (
           <section>
             <h2 className="font-display font-600 text-lg text-maroon-800 mb-1">Notes</h2>
-            <p className="text-sm text-maroon-700/80 bg-ivory rounded-card border border-clay-300/70 p-3">
+            <p className="text-sm text-maroon-700/80 bg-ivory rounded-card border border-clay-300/70 p-3 whitespace-pre-line">
               {order.notes}
             </p>
           </section>

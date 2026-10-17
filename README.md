@@ -28,6 +28,7 @@ src/
     types.ts            Domain types, mirroring the Sheets tabs
     sheets.ts           Low-level Google Sheets client (reads/appends/updates)
     repo.ts             Higher-level data access used by the API routes
+    whatsapp/           WhatsApp bot: command parser, handler, Cloud API helpers, tests
     calculations.ts     Pure calculation engine — order totals, production totals,
                          customer totals. No I/O, so it's the easiest place to verify
                          the numbers are right.
@@ -176,7 +177,82 @@ domain model in `types.ts`, a single calculation engine, and a thin Sheets data
 layer) is meant to make it straightforward to layer these on later without a
 rewrite.
 
-## 9. A note on box content edits
+## 9. WhatsApp bot (update orders by message)
+
+Staff can update an existing order by sending a WhatsApp message to the shop's
+WhatsApp Business number. The bot uses Meta's official **WhatsApp Cloud API**
+and the app's existing order data (the same Google Sheet rows and update
+functions the website uses) — it adds no new data store.
+
+### Messages it understands
+
+| Send | What happens |
+|---|---|
+| `status ORD0002` | Replies with customer, total, delivery status and payment status. Changes nothing. |
+| `delivered ORD0002` | Marks the order **Delivered**. |
+| `paid ORD0002 cash` | Marks it **Paid** and records the method as Cash. |
+| `paid ORD0002 upi` | Marks it **Paid** and records the method as UPI. |
+| `help` | Lists these commands. |
+
+Notes:
+- Commands are not case-sensitive. `ord2`, `ORD-0002` and `0002` all mean `ORD0002`.
+  The short code printed on receipts (for example `VG-4821`) also works.
+- A cancelled order can't be changed from WhatsApp (restore it in the app first).
+- Sending the same command twice is safe: the second reply says "already …" and nothing changes.
+- **Audit trail:** every change adds a line to the order's **Notes**, e.g.
+  `[WhatsApp 2026-10-15T09:12:03.000Z from +919876543210] Marked Delivered (was Packed)`.
+  Time is UTC. `status` and `help` change nothing, so they add no note.
+- Messages from numbers that are not in `WHATSAPP_ALLOWED_NUMBERS` are ignored
+  without a reply.
+
+### Setup
+
+1. **Create the Meta app.** Go to [developers.facebook.com](https://developers.facebook.com/apps),
+   create an app of type **Business**, and add the **WhatsApp** product. Meta gives
+   you a free test number to start with; to use the shop's own number, add and
+   verify it under *WhatsApp → API Setup*.
+2. **Collect the values** (see the table below) and put them in `.env.local`
+   (and in Vercel's *Environment Variables* for the live site):
+
+   | Variable | Where to find it |
+   |---|---|
+   | `WHATSAPP_VERIFY_TOKEN` | You invent it: any long random string. |
+   | `WHATSAPP_ACCESS_TOKEN` | *WhatsApp → API Setup*. The temporary token expires in about 24 hours; for real use create a permanent one: *Business Settings → Users → System Users → Add → Generate token* with the `whatsapp_business_messaging` and `whatsapp_business_management` permissions. |
+   | `WHATSAPP_PHONE_NUMBER_ID` | *WhatsApp → API Setup*, "Phone number ID" (not the phone number itself). |
+   | `WHATSAPP_ALLOWED_NUMBERS` | Comma-separated staff numbers with country code, e.g. `919876543210,919123456789`. |
+   | `WHATSAPP_APP_SECRET` | *App settings → Basic → App Secret*. Needed so the webhook can confirm each call really came from Meta. **Required in production.** |
+
+   Optional: `WHATSAPP_GRAPH_VERSION` (defaults to `v21.0`).
+3. **Deploy first.** Meta must be able to reach the webhook over HTTPS, so deploy
+   to Vercel (with the variables above set) before the next step. For local
+   testing, expose `npm run dev` with a tunnel such as `ngrok http 3000`.
+4. **Register the webhook.** In your app go to *WhatsApp → Configuration → Webhook → Edit*:
+   - **Callback URL:** `https://<your-domain>/api/whatsapp/webhook`
+   - **Verify token:** the same value as `WHATSAPP_VERIFY_TOKEN`
+   - Click **Verify and save**, then under *Webhook fields* **subscribe to `messages`**.
+5. **Try it.** From an allowed number, send `help` to the business number. If you
+   are using Meta's test number, first add your phone under *API Setup → "To"*
+   and confirm the code Meta sends.
+
+If the bot doesn't answer: check Vercel's function logs for `/api/whatsapp/webhook`.
+The usual causes are a wrong `WHATSAPP_APP_SECRET` (the log says "Invalid
+signature"), an expired access token, your number missing from
+`WHATSAPP_ALLOWED_NUMBERS`, or the `messages` field not being subscribed.
+
+WhatsApp only lets the bot send free-form replies within 24 hours of your last
+message to it. That is always true here, because every reply answers a message
+you just sent.
+
+### Tests
+
+```bash
+npm test
+```
+
+Runs the command parser, the order-update logic (with an in-memory store, so no
+Google Sheets or WhatsApp account needed), and the signature / allow-list checks.
+
+## 10. A note on box content edits
 
 Box *contents* (which products are inside a box, and in what quantity) are set when
 a box is created. Editing a box's price/name/active flag is supported from the
