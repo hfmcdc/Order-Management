@@ -40,10 +40,12 @@ export default function NewOrderPage() {
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerResults, setCustomerResults] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", address: "" });
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
-  const [creatingCustomer, setCreatingCustomer] = useState(false);
+  // Optional details, only used if a brand-new customer gets created
+  const [showExtraDetails, setShowExtraDetails] = useState(false);
+  const [extraDetails, setExtraDetails] = useState({ phone: "", address: "" });
+  // Shown when several existing customers share the typed name
+  const [sameNameMatches, setSameNameMatches] = useState<Customer[]>([]);
 
   // Order lines
   const [boxQuantities, setBoxQuantities] = useState<Record<string, number>>({});
@@ -85,32 +87,44 @@ export default function NewOrderPage() {
     }
   }
 
-  async function createCustomerNow() {
-    setSaveError(null);
-    if (!newCustomer.name.trim()) {
-      setSaveError("Please enter a name.");
-      return;
+  const typedName = customerQuery.trim().replace(/\s+/g, " ");
+  const exactMatches = customerResults.filter(
+    (c) => c.name.trim().replace(/\s+/g, " ").toLowerCase() === typedName.toLowerCase()
+  );
+  const nameLooksValid = /\p{L}/u.test(typedName); // needs at least one letter
+
+  /** Make sure we have a customer: the one picked, or find/create from the typed name. */
+  async function resolveCustomer(forceNew = false): Promise<Customer | null> {
+    if (selectedCustomer) return selectedCustomer;
+    if (!typedName) {
+      setSaveError("Please type the customer's name (or pick one from the list).");
+      return null;
     }
-    if (creatingCustomer) return; // guard against double-tap creating duplicates
-    setCreatingCustomer(true);
-    try {
-      const res = await fetch("/api/customers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCustomer),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error);
-      if (!body.customer) {
-        throw new Error("Something went wrong creating the customer. Please try again.");
-      }
-      setSelectedCustomer(body.customer);
-      setShowNewCustomerForm(false);
-    } catch (err: any) {
-      setSaveError(err.message ?? "Could not create customer. Please check your connection and try again.");
-    } finally {
-      setCreatingCustomer(false);
+    if (!nameLooksValid) {
+      setSaveError("Please type the customer's name. A phone number on its own can't be used as a name.");
+      return null;
     }
+    const res = await fetch("/api/customers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: typedName,
+        phone: extraDetails.phone,
+        address: extraDetails.address,
+        find_or_create: !forceNew,
+      }),
+    });
+    const body = await res.json();
+    if (res.status === 409 && Array.isArray(body.matches)) {
+      setSameNameMatches(body.matches);
+      setSaveError(body.error);
+      return null;
+    }
+    if (!res.ok) throw new Error(body.error);
+    if (!body.customer) throw new Error("Something went wrong with the customer. Please try again.");
+    setSameNameMatches([]);
+    setSelectedCustomer(body.customer);
+    return body.customer as Customer;
   }
 
   const boxSubtotal = useMemo(
@@ -134,10 +148,7 @@ export default function NewOrderPage() {
 
   async function saveOrder() {
     setSaveError(null);
-    if (!selectedCustomer) {
-      setSaveError("Please select or create a customer first.");
-      return;
-    }
+    if (saving) return; // guard against double-tap
     if (!hasItems) {
       setSaveError("Add at least one box or product before saving.");
       return;
@@ -168,11 +179,14 @@ export default function NewOrderPage() {
 
     setSaving(true);
     try {
+      const customer = await resolveCustomer();
+      if (!customer) return; // message already shown; nothing was saved
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer_id: selectedCustomer.customer_id,
+          customer_id: customer.customer_id,
           notes,
           items,
         }),
@@ -217,7 +231,7 @@ export default function NewOrderPage() {
     <div className="flex flex-col gap-6 pb-8">
       <header>
         <h1 className="font-display font-700 text-2xl text-maroon-800">New order</h1>
-        <p className="text-maroon-700/70 text-sm mt-0.5">Find the customer, add items, save.</p>
+        <p className="text-maroon-700/70 text-sm mt-0.5">Type the customer name, add items, save.</p>
       </header>
 
       {/* Step 1: Customer */}
@@ -228,10 +242,15 @@ export default function NewOrderPage() {
           <div className="rounded-card bg-marigold-50 border border-marigold-100 px-4 py-3 flex items-center justify-between">
             <div>
               <p className="font-medium text-maroon-800">{selectedCustomer.name}</p>
-              <p className="text-sm text-maroon-700/70">{selectedCustomer.phone}</p>
+              {selectedCustomer.phone && (
+                <p className="text-sm text-maroon-700/70">{selectedCustomer.phone}</p>
+              )}
             </div>
             <button
-              onClick={() => setSelectedCustomer(null)}
+              onClick={() => {
+                setSelectedCustomer(null);
+                setSameNameMatches([]);
+              }}
               className="text-sm text-marigold-600 font-medium touch-target px-2"
             >
               Change
@@ -241,8 +260,11 @@ export default function NewOrderPage() {
           <>
             <input
               value={customerQuery}
-              onChange={(e) => searchCustomers(e.target.value)}
-              placeholder="Search by name or phone"
+              onChange={(e) => {
+                setSameNameMatches([]);
+                searchCustomers(e.target.value);
+              }}
+              placeholder="Type customer name"
               className="touch-target rounded-card border border-clay-300 px-4 bg-ivory"
             />
             {customerSearchLoading && <p className="text-sm text-maroon-700/60">Searching…</p>}
@@ -255,6 +277,7 @@ export default function NewOrderPage() {
                       setSelectedCustomer(c);
                       setCustomerResults([]);
                       setCustomerQuery("");
+                      setSameNameMatches([]);
                     }}
                     className="touch-target text-left rounded-card border border-clay-300 bg-ivory px-4 flex items-center justify-between hover:border-marigold-400"
                   >
@@ -264,67 +287,79 @@ export default function NewOrderPage() {
                 ))}
               </div>
             )}
-            {!showNewCustomerForm ? (
+
+            {typedName && !customerSearchLoading && (
+              <p className="text-sm text-maroon-700/70">
+                {exactMatches.length === 1
+                  ? `Will use the existing customer "${exactMatches[0].name}".`
+                  : exactMatches.length > 1
+                    ? `More than one "${typedName}" exists — pick the right one above.`
+                    : `New customer — "${typedName}" will be added when you save the order.`}
+              </p>
+            )}
+
+            {sameNameMatches.length > 0 && (
+              <div className="rounded-card border border-clay-300 bg-ivory p-3 flex flex-col gap-2">
+                <p className="text-sm text-maroon-800">Which one is it?</p>
+                {sameNameMatches.map((c) => (
+                  <button
+                    key={c.customer_id}
+                    onClick={() => {
+                      setSelectedCustomer(c);
+                      setSameNameMatches([]);
+                      setCustomerResults([]);
+                      setCustomerQuery("");
+                      setSaveError(null);
+                    }}
+                    className="touch-target text-left rounded-card border border-clay-300 px-4 flex items-center justify-between hover:border-marigold-400"
+                  >
+                    <span className="font-medium text-maroon-800">{c.name}</span>
+                    <span className="text-sm text-maroon-700/60">{c.phone || c.address || "no details"}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={async () => {
+                    setSaveError(null);
+                    try {
+                      await resolveCustomer(true);
+                      setSameNameMatches([]);
+                    } catch (err: any) {
+                      setSaveError(err.message ?? "Could not add the customer.");
+                    }
+                  }}
+                  className="self-start text-sm text-marigold-600 font-medium touch-target"
+                >
+                  None of these — add a new "{typedName}"
+                </button>
+              </div>
+            )}
+
+            {!showExtraDetails ? (
               <button
-                onClick={() => setShowNewCustomerForm(true)}
+                onClick={() => setShowExtraDetails(true)}
                 className="self-start text-sm text-marigold-600 font-medium touch-target"
               >
-                + Create new customer
+                + Add phone / address (optional)
               </button>
             ) : (
               <div className="rounded-card border border-clay-300 bg-ivory p-4 flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="new-customer-name" className="text-xs font-medium text-maroon-700/70">
-                    Name
-                  </label>
-                  <input
-                    id="new-customer-name"
-                    placeholder="Customer name"
-                    value={newCustomer.name}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                    className="touch-target rounded-card border border-clay-300 px-4"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="new-customer-phone" className="text-xs font-medium text-maroon-700/70">
-                    Phone (optional)
-                  </label>
-                  <input
-                    id="new-customer-phone"
-                    placeholder="Phone number"
-                    value={newCustomer.phone}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                    className="touch-target rounded-card border border-clay-300 px-4"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="new-customer-address" className="text-xs font-medium text-maroon-700/70">
-                    Address (optional)
-                  </label>
-                  <input
-                    id="new-customer-address"
-                    placeholder="Address"
-                    value={newCustomer.address}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
-                    className="touch-target rounded-card border border-clay-300 px-4"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={createCustomerNow}
-                    disabled={creatingCustomer}
-                    className="touch-target flex-1 rounded-full bg-marigold-500 text-ink font-medium disabled:opacity-60"
-                  >
-                    {creatingCustomer ? "Saving…" : "Save customer"}
-                  </button>
-                  <button
-                    onClick={() => setShowNewCustomerForm(false)}
-                    disabled={creatingCustomer}
-                    className="touch-target px-4 rounded-full bg-clay-100 text-maroon-800 font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                <p className="text-xs text-maroon-700/60">
+                  Only used if this turns out to be a new customer.
+                </p>
+                <input
+                  aria-label="Phone (optional)"
+                  placeholder="Phone number (optional)"
+                  value={extraDetails.phone}
+                  onChange={(e) => setExtraDetails({ ...extraDetails, phone: e.target.value })}
+                  className="touch-target rounded-card border border-clay-300 px-4"
+                />
+                <input
+                  aria-label="Address (optional)"
+                  placeholder="Address (optional)"
+                  value={extraDetails.address}
+                  onChange={(e) => setExtraDetails({ ...extraDetails, address: e.target.value })}
+                  className="touch-target rounded-card border border-clay-300 px-4"
+                />
               </div>
             )}
           </>

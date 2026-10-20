@@ -64,6 +64,41 @@ export async function createCustomer(input: {
   } as Customer);
 }
 
+/**
+ * Use the customer if they already exist, otherwise create them from just a
+ * name. Safe to call again after a failed order save: the second call finds
+ * the customer made by the first, so retries never create duplicates.
+ *
+ * Order of matching: a phone number (if given) identifies a customer first;
+ * then an exact name match (ignoring case and extra spaces). If several
+ * customers share that exact name, nothing is guessed — the caller gets the
+ * list back so a person can pick the right one.
+ */
+export async function findOrCreateCustomerByName(input: {
+  name: string;
+  phone?: string;
+  address?: string;
+}): Promise<
+  | { customer: Customer; created: boolean; ambiguous?: undefined }
+  | { ambiguous: Customer[]; customer?: undefined; created?: undefined }
+> {
+  const norm = (n: string) => n.trim().replace(/\s+/g, " ").toLowerCase();
+  const name = input.name.trim().replace(/\s+/g, " ");
+  const phone = (input.phone ?? "").trim();
+
+  if (phone) {
+    const byPhone = await findCustomerByPhone(phone);
+    if (byPhone) return { customer: byPhone, created: false };
+  }
+
+  const sameName = (await listCustomers()).filter((c) => norm(c.name) === norm(name));
+  if (sameName.length === 1) return { customer: sameName[0], created: false };
+  if (sameName.length > 1) return { ambiguous: sameName };
+
+  const customer = await createCustomer({ name, phone, address: input.address ?? "" });
+  return { customer, created: true };
+}
+
 export async function updateCustomer(
   id: string,
   patch: Partial<Pick<Customer, "name" | "phone" | "address">>
@@ -182,9 +217,9 @@ export async function updateBox(id: string, patch: Partial<Box>): Promise<void> 
 }
 
 /**
- * Replace everything inside a box with a new list. If appending the new rows
- * fails, restore the previous contents so a failed save does not leave the box
- * empty.
+ * Replace everything inside a box with a new list. Deletes the old rows and
+ * appends the new ones; if the append fails, the old rows are put back so a
+ * failed save never leaves a box empty.
  */
 export async function replaceBoxContents(
   boxId: string,
@@ -210,7 +245,11 @@ export async function replaceBoxContents(
   }
 }
 
-/** Keep boxes that use a product unit linked when its label is renamed. */
+/**
+ * When a product unit is renamed (e.g. "Piece" -> "Pcs"), keep every box
+ * that uses it pointing at the new label, so box contents don't silently
+ * lose their link to the unit.
+ */
 export async function renameBoxUnitLabel(
   productId: string,
   oldLabel: string,
