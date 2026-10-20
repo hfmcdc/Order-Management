@@ -203,6 +203,7 @@ export default function ProductsPage() {
                 </button>
                 {expanded === p.product_id && (
                   <>
+                    <ProductEditor product={p} onSaved={refresh} />
                     <ProductUnitsManager product={p} units={units} onChanged={refreshUnits} />
                     <ProductCustomers productId={p.product_id} />
                   </>
@@ -231,6 +232,7 @@ function ProductUnitsManager({
   const [price, setPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [unitError, setUnitError] = useState<string | null>(null);
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
 
   async function addUnit() {
     setUnitError(null);
@@ -281,19 +283,37 @@ function ProductUnitsManager({
       </p>
       {units.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          {units.map((u) => (
-            <div key={u.unit_id} className="flex items-center justify-between text-sm bg-ivory rounded-xl px-3 py-2">
-              <span className="text-maroon-800">
-                {u.label} <span className="text-maroon-700/50">· {u.context === "box" ? "box" : "individual"}</span>
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-maroon-700/70">₹{u.price}</span>
-                <button onClick={() => removeUnit(u)} className="text-xs text-red-400 font-medium">
-                  Remove
-                </button>
+          {units.map((u) =>
+            editingUnitId === u.unit_id ? (
+              <UnitEditForm
+                key={u.unit_id}
+                unit={u}
+                onCancel={() => setEditingUnitId(null)}
+                onSaved={() => {
+                  setEditingUnitId(null);
+                  onChanged();
+                }}
+              />
+            ) : (
+              <div key={u.unit_id} className="flex items-center justify-between text-sm bg-ivory rounded-xl px-3 py-2">
+                <span className="text-maroon-800">
+                  {u.label} <span className="text-maroon-700/50">· {u.context === "box" ? "box" : "individual"}</span>
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-maroon-700/70">₹{u.price}</span>
+                  <button
+                    onClick={() => setEditingUnitId(u.unit_id)}
+                    className="text-xs text-marigold-600 font-medium"
+                  >
+                    Edit
+                  </button>
+                  <button onClick={() => removeUnit(u)} className="text-xs text-red-400 font-medium">
+                    Remove
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
 
@@ -355,6 +375,178 @@ function ProductUnitsManager({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => void }) {
+  const [name, setName] = useState(product.name);
+  const [price, setPrice] = useState(String(product.price));
+  const [category, setCategory] = useState(product.category ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const changed =
+    name !== product.name || price !== String(product.price) || category !== (product.category ?? "");
+
+  async function save() {
+    setError(null);
+    setSaved(false);
+    if (!name.trim()) {
+      setError("Name can't be empty.");
+      return;
+    }
+    if (price === "" || Number(price) < 0) {
+      setError("Please enter a price (0 or more).");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/products", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: product.product_id, name, price: Number(price), category }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error);
+      setSaved(true);
+      onSaved();
+    } catch (err: any) {
+      setError(err.message ?? "Unable to save changes.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border-t border-clay-300/60 px-4 py-3 flex flex-col gap-2">
+      <p className="text-sm font-medium text-maroon-800">Edit product</p>
+      <input
+        aria-label="Product name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="touch-target rounded-xl border border-clay-300 px-3 text-sm"
+      />
+      <div className="flex gap-2">
+        <input
+          aria-label="Price (₹)"
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="touch-target rounded-xl border border-clay-300 px-3 text-sm w-1/3"
+        />
+        <input
+          aria-label="Category"
+          placeholder="Category (optional)"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="touch-target rounded-xl border border-clay-300 px-3 text-sm flex-1"
+        />
+      </div>
+      <p className="text-xs text-maroon-700/50">
+        A price change applies to new orders only. Existing orders keep the price they were made with.
+      </p>
+      {error && <ErrorState message={error} />}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={save}
+          disabled={saving || !changed}
+          className="touch-target rounded-full bg-marigold-500 text-ink text-sm font-medium px-5 disabled:opacity-40"
+        >
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+        {saved && !changed && <span className="text-xs text-maroon-700/60">Saved ✓</span>}
+      </div>
+    </div>
+  );
+}
+
+function UnitEditForm({
+  unit,
+  onCancel,
+  onSaved,
+}: {
+  unit: ProductUnit;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [label, setLabel] = useState(unit.label);
+  const [context, setContext] = useState<UnitContext>(unit.context);
+  const [price, setPrice] = useState(String(unit.price));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setError(null);
+    if (!label.trim() || price === "") {
+      setError("Please enter a label and price.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/product-units", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unit_id: unit.unit_id, label: label.trim(), context, price: Number(price) }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error);
+      onSaved();
+    } catch (err: any) {
+      setError(err.message ?? "Unable to save unit.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2 bg-ivory rounded-xl p-3">
+      <input
+        aria-label="Unit label"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        className="touch-target rounded-xl border border-clay-300 px-3 text-sm"
+      />
+      <div className="flex gap-2">
+        {(["box", "individual"] as UnitContext[]).map((c) => (
+          <button
+            key={c}
+            onClick={() => setContext(c)}
+            className={`touch-target flex-1 rounded-xl text-sm font-medium border ${
+              context === c ? "bg-wine-700 text-white border-wine-700" : "bg-ivory text-maroon-800 border-clay-300"
+            }`}
+          >
+            {c === "box" ? "For boxes" : "For individual sale"}
+          </button>
+        ))}
+      </div>
+      <input
+        aria-label="Unit price (₹)"
+        type="number"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        className="touch-target rounded-xl border border-clay-300 px-3 text-sm"
+      />
+      <p className="text-xs text-maroon-700/50">
+        Renaming a unit also updates boxes that use it. A price change applies to new orders only.
+      </p>
+      {error && <ErrorState message={error} />}
+      <div className="flex gap-2">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="touch-target flex-1 rounded-full bg-marigold-500 text-ink text-sm font-medium"
+        >
+          {saving ? "Saving…" : "Save unit"}
+        </button>
+        <button
+          onClick={onCancel}
+          className="touch-target px-4 rounded-full bg-clay-100 text-maroon-800 text-sm font-medium"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }

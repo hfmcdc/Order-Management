@@ -140,6 +140,10 @@ export async function createProductUnit(input: Omit<ProductUnit, "unit_id">): Pr
   return appendRow<ProductUnit>("ProductUnits", { unit_id: "", ...input } as ProductUnit);
 }
 
+export async function updateProductUnit(id: string, patch: Partial<ProductUnit>): Promise<void> {
+  return updateRow<ProductUnit>("ProductUnits", id, patch);
+}
+
 export async function deleteProductUnit(id: string): Promise<void> {
   await deleteRow("ProductUnits", id);
 }
@@ -175,6 +179,57 @@ export async function createBox(
 
 export async function updateBox(id: string, patch: Partial<Box>): Promise<void> {
   return updateRow<Box>("Boxes", id, patch);
+}
+
+/**
+ * Replace everything inside a box with a new list. If appending the new rows
+ * fails, restore the previous contents so a failed save does not leave the box
+ * empty.
+ */
+export async function replaceBoxContents(
+  boxId: string,
+  contents: { product_id: string; quantity: number; unit_label?: string }[]
+): Promise<void> {
+  const previous = (await listBoxContents()).filter((bc) => bc.box_id === boxId);
+  await deleteRowsWhere("BoxContents", (bc) => bc.box_id === boxId);
+  try {
+    if (contents.length > 0) {
+      await appendRows<BoxContent>(
+        "BoxContents",
+        contents.map((c) => ({
+          box_id: boxId,
+          product_id: c.product_id,
+          quantity: c.quantity,
+          unit_label: c.unit_label ?? "",
+        }))
+      );
+    }
+  } catch (err) {
+    if (previous.length > 0) await appendRows<BoxContent>("BoxContents", previous);
+    throw err;
+  }
+}
+
+/** Keep boxes that use a product unit linked when its label is renamed. */
+export async function renameBoxUnitLabel(
+  productId: string,
+  oldLabel: string,
+  newLabel: string
+): Promise<void> {
+  const all = await listBoxContents();
+  const affectedBoxIds = [
+    ...new Set(
+      all.filter((bc) => bc.product_id === productId && bc.unit_label === oldLabel).map((bc) => bc.box_id)
+    ),
+  ];
+  for (const boxId of affectedBoxIds) {
+    const rows = all
+      .filter((bc) => bc.box_id === boxId)
+      .map((bc) =>
+        bc.product_id === productId && bc.unit_label === oldLabel ? { ...bc, unit_label: newLabel } : bc
+      );
+    await replaceBoxContents(boxId, rows);
+  }
 }
 
 /** Permanently delete a box and its contents definition. Past orders that
