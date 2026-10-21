@@ -9,8 +9,13 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const products = await listProducts();
-    const headers = ["Name", "Price", "Active"];
-    const rows = products.map((p) => [p.name, p.price, p.active ? "Yes" : "No"]);
+    const headers = ["Name", "Price", "Active", "Sold individually"];
+    const rows = products.map((p) => [
+      p.name,
+      p.price,
+      p.active ? "Yes" : "No",
+      p.individual_sale === false ? "No" : "Yes",
+    ]);
     const csv = toCsv(headers, rows);
     const filename = `vaiga-products-${new Date().toISOString().slice(0, 10)}.csv`;
     return new NextResponse(csv, { headers: csvResponseHeaders(filename) });

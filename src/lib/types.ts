@@ -43,6 +43,9 @@ export interface Product {
   price: number;
   active: boolean;
   category?: string; // optional, used to group Production page ("Sweets"/"Snacks")
+  // false = box-only: not offered under "Individual products" when taking an
+  // order. Blank/missing means yes (so existing products keep showing).
+  individual_sale?: boolean;
 }
 
 // A product can optionally be sold in more than one unit — e.g. Halwa as

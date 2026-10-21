@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const NUMERIC_COLUMNS = new Set(["price", "quantity", "unit_price"]);
-const BOOLEAN_COLUMNS = new Set(["active"]);
+const BOOLEAN_COLUMNS = new Set(["active", "individual_sale"]);
 
 // Columns holding ISO dates/timestamps. Rows written before the app switched
 // to RAW input could have been auto-converted by Sheets into a date serial

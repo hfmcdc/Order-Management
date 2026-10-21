@@ -11,14 +11,14 @@ export default function ProductsPage() {
     "/api/product-units"
   );
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", price: "", category: "" });
+  const [form, setForm] = useState({ name: "", price: "", category: "", individual_sale: true });
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   function closeForm() {
     setShowForm(false);
-    setForm({ name: "", price: "", category: "" });
+    setForm({ name: "", price: "", category: "", individual_sale: true });
     setFormError(null);
   }
 
@@ -33,7 +33,12 @@ export default function ProductsPage() {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, price: Number(form.price), category: form.category }),
+        body: JSON.stringify({
+          name: form.name,
+          price: Number(form.price),
+          category: form.category,
+          individual_sale: form.individual_sale,
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
@@ -129,6 +134,20 @@ export default function ProductsPage() {
               className="touch-target rounded-card border border-clay-300 px-4"
             />
           </div>
+          <label className="flex items-start gap-3 touch-target">
+            <input
+              type="checkbox"
+              checked={form.individual_sale}
+              onChange={(e) => setForm({ ...form, individual_sale: e.target.checked })}
+              className="mt-1 h-5 w-5 shrink-0 accent-[#D9A441]"
+            />
+            <span className="text-sm text-maroon-800">
+              Sold individually
+              <span className="block text-xs text-maroon-700/50">
+                Show this under "Individual products" in New order. Turn off if it's only used inside boxes.
+              </span>
+            </span>
+          </label>
           {formError && <ErrorState message={formError} />}
           <div className="flex gap-2">
             <button
@@ -177,6 +196,7 @@ export default function ProductsPage() {
                         ? `${units.length} unit${units.length === 1 ? "" : "s"} configured`
                         : `₹${p.price}`}
                       {p.category ? ` · ${p.category}` : ""}
+                      {p.individual_sale === false ? " · Box only" : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -383,12 +403,16 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(String(product.price));
   const [category, setCategory] = useState(product.category ?? "");
+  const [individual, setIndividual] = useState(product.individual_sale !== false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const changed =
-    name !== product.name || price !== String(product.price) || category !== (product.category ?? "");
+    name !== product.name ||
+    price !== String(product.price) ||
+    category !== (product.category ?? "") ||
+    individual !== (product.individual_sale !== false);
 
   async function save() {
     setError(null);
@@ -406,7 +430,13 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
       const res = await fetch("/api/products", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: product.product_id, name, price: Number(price), category }),
+        body: JSON.stringify({
+          product_id: product.product_id,
+          name,
+          price: Number(price),
+          category,
+          individual_sale: individual,
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
@@ -444,6 +474,20 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
           className="touch-target rounded-xl border border-clay-300 px-3 text-sm flex-1"
         />
       </div>
+      <label className="flex items-start gap-3 touch-target">
+        <input
+          type="checkbox"
+          checked={individual}
+          onChange={(e) => setIndividual(e.target.checked)}
+          className="mt-1 h-5 w-5 shrink-0 accent-[#D9A441]"
+        />
+        <span className="text-sm text-maroon-800">
+          Sold individually
+          <span className="block text-xs text-maroon-700/50">
+            On: shows under "Individual products" in New order. Off: only used inside boxes.
+          </span>
+        </span>
+      </label>
       <p className="text-xs text-maroon-700/50">
         A price change applies to new orders only. Existing orders keep the price they were made with.
       </p>

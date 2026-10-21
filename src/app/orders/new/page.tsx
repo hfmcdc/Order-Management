@@ -6,7 +6,7 @@ import { useApi } from "@/lib/useApi";
 import QuantitySelector from "@/components/QuantitySelector";
 import { LoadingState, ErrorState } from "@/components/StateViews";
 import { Box, Customer, Product, ProductUnit } from "@/lib/types";
-import { dedupeProductUnits } from "@/lib/product-units";
+import { dedupeProductUnits, isSoldIndividually } from "@/lib/product-units";
 import clsx from "clsx";
 
 // Item keys: "productId" for a plain product, or "productId::unitLabel" for
@@ -57,7 +57,7 @@ export default function NewOrderPage() {
   const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
 
   const boxes = boxData?.boxes.filter((b) => b.active) ?? [];
-  const products = productData?.products.filter((p) => p.active) ?? [];
+  const products = productData?.products.filter((p) => p.active && isSoldIndividually(p)) ?? [];
   const allUnits = dedupeProductUnits(unitsData?.units.filter((u) => u.active) ?? []);
 
   function individualUnitsFor(productId: string) {

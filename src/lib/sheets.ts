@@ -33,7 +33,9 @@ export type SheetTab = keyof typeof SHEET_TABS;
 // single source of truth for how JS objects map to spreadsheet columns.
 export const SHEET_COLUMNS: Record<SheetTab, string[]> = {
   Customers: ["customer_id", "name", "phone", "address", "created_at", "updated_at"],
-  Products: ["product_id", "name", "price", "active", "category"],
+  // individual_sale appended at the end — rows written before this existed
+  // read back as blank, which means "yes, sold individually" (the old behavior).
+  Products: ["product_id", "name", "price", "active", "category", "individual_sale"],
   Boxes: ["box_id", "name", "price", "description", "active"],
   // unit_label appended at the end — existing rows (written before this
   // feature existed) just read back as "" for it, meaning "no specific

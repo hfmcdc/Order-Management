@@ -5,7 +5,7 @@ import { useApi } from "@/lib/useApi";
 import { ErrorState, LoadingState } from "@/components/StateViews";
 import QuantitySelector from "@/components/QuantitySelector";
 import { Box, OrderWithDetails, Product, ProductUnit } from "@/lib/types";
-import { dedupeProductUnits } from "@/lib/product-units";
+import { dedupeProductUnits, isSoldIndividually } from "@/lib/product-units";
 import clsx from "clsx";
 
 // Item keys: "productId" for a plain product, or "productId::unitLabel" for
@@ -67,7 +67,8 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
     const orderedIds = new Set(
       order.items.filter((i) => i.item_type === "product").map((i) => i.product_id)
     );
-    return all.filter((p) => p.active || orderedIds.has(p.product_id));
+    // Box-only products are hidden too, unless already on this order.
+    return all.filter((p) => (p.active && isSoldIndividually(p)) || orderedIds.has(p.product_id));
   }, [productData, order.items]);
 
   const allUnits = dedupeProductUnits(unitsData?.units.filter((u) => u.active) ?? []);
