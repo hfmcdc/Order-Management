@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useApi } from "@/lib/useApi";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import SummaryCard from "@/components/SummaryCard";
 import { OrderStatusBadge } from "@/components/StatusBadge";
@@ -58,6 +59,8 @@ function Card({
 }
 
 export default function SalesPage() {
+  // Laptop-only: below the tablet breakpoint nothing is fetched or shown.
+  const isWideEnough = useMediaQuery("(min-width: 768px)");
   const [today, setToday] = useState("");
   useEffect(() => setToday(toLocalIso(new Date())), []);
 
@@ -71,14 +74,14 @@ export default function SalesPage() {
   const range = useMemo(() => (today ? resolveRange(preset, today, custom) : null), [preset, today, custom]);
 
   const url = useMemo(() => {
-    if (!range) return null;
+    if (!range || !isWideEnough) return null;
     if (preset === "custom" && !range.from && !range.to) return null; // nothing chosen yet
     const params = new URLSearchParams();
     if (range.from) params.set("from", range.from);
     if (range.to) params.set("to", range.to);
     params.set("basis", basis);
     return `/api/sales?${params.toString()}`;
-  }, [range, preset, basis]);
+  }, [range, preset, basis, isWideEnough]);
 
   const { data, loading, error, refresh } = useApi<SalesReport>(url);
 
@@ -125,7 +128,18 @@ export default function SalesPage() {
   const topBoxMax = Math.max(1, ...(data?.topBoxes ?? []).map((b) => b.revenue));
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
+      {/* CSS-only switch, so there's no flash of the wrong view on load */}
+      <div className="md:hidden flex flex-col items-center gap-4 py-20 text-center">
+        <h1 className="font-display font-700 text-xl text-maroon-800">Sales is available on a laptop</h1>
+        <p className="max-w-sm text-sm text-maroon-700/70">
+          Open Vaiga Order Manager on a laptop or desktop computer to see sales, payments and trends.
+        </p>
+        <Link href="/" className="press touch-target flex items-center rounded-full bg-marigold-500 px-6 font-semibold text-ink">
+          Back to dashboard
+        </Link>
+      </div>
+      <div className="hidden md:flex flex-col gap-6">
       <header>
         <h1 className="font-display font-700 text-2xl text-maroon-800">Sales</h1>
         <p className="text-maroon-700/70 text-sm mt-1">
@@ -346,6 +360,7 @@ export default function SalesPage() {
           )}
         </motion.div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

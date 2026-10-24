@@ -24,8 +24,9 @@ const ALL_LINKS = [
 const PRIMARY_MOBILE_LINKS = ALL_LINKS.filter((l) =>
   ["/", "/orders", "/customers"].includes(l.href)
 );
+// Sales is laptop-only, so it never appears in the phone menu.
 const MORE_LINKS = ALL_LINKS.filter(
-  (l) => !["/", "/orders", "/customers"].includes(l.href)
+  (l) => !["/", "/orders", "/customers", "/sales"].includes(l.href)
 );
 
 export default function Nav() {

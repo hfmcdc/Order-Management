@@ -5,7 +5,8 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 
 const SESSION_KEY = "vaiga-splash-shown";
-const VISIBLE_MS = 2000;
+// How long the opening screen stays up (was 2s; +2.5s as requested).
+const VISIBLE_MS = 4500;
 
 // 12-petal rangoli: the same motif as the dashboard hero, drawn in gold.
 const PETALS = Array.from({ length: 12 }, (_, i) => {
@@ -46,8 +47,8 @@ export default function SplashScreen() {
             viewBox="0 0 200 200"
             fill="none"
             initial={{ rotate: -25 }}
-            animate={{ rotate: 0 }}
-            transition={{ duration: 2, ease: "easeOut" }}
+            animate={{ rotate: 20 }}
+            transition={{ duration: VISIBLE_MS / 1000, ease: "easeOut" }}
           >
             {[92, 70, 48].map((r, idx) => (
               <motion.circle
