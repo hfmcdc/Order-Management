@@ -14,9 +14,9 @@ function o(id: string, p: Partial<OrderWithDetails>): OrderWithDetails {
   };
 }
 const rows = [
-  o("ORD0002", { total: 500, status: "Delivered", payment_status: "Paid", fulfillment_date: "2026-10-22" }),
-  o("ORD0010", { total: 100, status: "New", fulfillment_date: "" }),
-  o("ORD0001", { total: 300, status: "Packed", payment_status: "Partial", fulfillment_date: "2026-10-18",
+  o("ORD0002", { total: 500, status: "Delivered", payment_status: "Paid", order_date: "2026-10-22" }),
+  o("ORD0010", { total: 100, status: "New", order_date: "" }),
+  o("ORD0001", { total: 300, status: "Packed", payment_status: "Partial", order_date: "2026-10-18",
     customer: { customer_id: "D", name: "ben", phone: "55", address: "", created_at: "", updated_at: "" } }),
 ];
 
@@ -29,7 +29,7 @@ test("filters combine: status, payment, date range, search", () => {
   assert.equal(filterOrders(rows, { ...EMPTY_FILTERS, status: "New", payment: "Paid" }).length, 0);
 });
 
-test("a date filter excludes orders that have no date", () => {
+test("the date filter uses the ORDERED date and excludes orders with no date", () => {
   const r = filterOrders(rows, { ...EMPTY_FILTERS, from: "2026-01-01" });
   assert.ok(!r.some((x) => x.order_id === "ORD0010"));
 });
@@ -38,8 +38,8 @@ test("sorting: numeric ids, totals, status order, undated last, stable", () => {
   assert.deepEqual(sortOrders(rows, { key: "order_id", dir: "asc" }).map((x) => x.order_id), ["ORD0001", "ORD0002", "ORD0010"]);
   assert.deepEqual(sortOrders(rows, { key: "total", dir: "desc" }).map((x) => x.total), [500, 300, 100]);
   assert.deepEqual(sortOrders(rows, { key: "status", dir: "asc" }).map((x) => x.status), ["New", "Packed", "Delivered"]);
-  assert.equal(sortOrders(rows, { key: "fulfillment_date", dir: "asc" }).at(-1)!.order_id, "ORD0010");
-  assert.equal(sortOrders(rows, { key: "fulfillment_date", dir: "desc" }).at(-1)!.order_id, "ORD0010");
+  assert.equal(sortOrders(rows, { key: "order_date", dir: "asc" }).at(-1)!.order_id, "ORD0010");
+  assert.equal(sortOrders(rows, { key: "order_date", dir: "desc" }).at(-1)!.order_id, "ORD0010");
   assert.equal(sortOrders(rows, null), rows);
 });
 

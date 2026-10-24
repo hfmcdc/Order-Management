@@ -107,11 +107,11 @@ export default function OrdersPage() {
     refresh(); // silent refresh: rows update in place and the badges pop
   }
 
-  // Quick fulfilment-date shortcuts
+  // Quick ordered-date shortcuts
   const quickDates = todayIso
     ? [
         { label: "Today", from: todayIso, to: todayIso },
-        { label: "Tomorrow", from: addDaysIso(todayIso, 1), to: addDaysIso(todayIso, 1) },
+        { label: "Yesterday", from: addDaysIso(todayIso, -1), to: addDaysIso(todayIso, -1) },
         { label: "This week", from: mondayOf(todayIso), to: addDaysIso(mondayOf(todayIso), 6) },
       ]
     : [];
@@ -129,7 +129,7 @@ export default function OrdersPage() {
         : filters.from
         ? `from ${formatShort(filters.from, true)}`
         : `until ${formatShort(filters.to, true)}`;
-    chips.push({ key: "date", label: `Fulfilment: ${label}`, clear: () => patchFilters({ from: "", to: "" }) });
+    chips.push({ key: "date", label: `Ordered: ${label}`, clear: () => patchFilters({ from: "", to: "" }) });
   }
 
   const fieldLabel = "flex flex-col gap-1 text-xs font-medium text-maroon-700/70";
@@ -224,7 +224,7 @@ export default function OrdersPage() {
             </select>
           </label>
           <label className={fieldLabel}>
-            Fulfilment from
+            Ordered from
             <input
               type="date"
               value={filters.from}
@@ -234,7 +234,7 @@ export default function OrdersPage() {
             />
           </label>
           <label className={fieldLabel}>
-            Fulfilment to
+            Ordered to
             <input
               type="date"
               value={filters.to}
@@ -335,7 +335,6 @@ export default function OrdersPage() {
             onToggleAll={toggleAll}
             sort={sort}
             onSort={(key: SortKey) => setSort((s) => nextSort(s, key))}
-            todayIso={todayIso}
           />
 
           <BulkActions

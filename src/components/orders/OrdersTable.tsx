@@ -7,12 +7,12 @@ import Checkbox from "@/components/motion/Checkbox";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
 import { OrderWithDetails } from "@/lib/types";
 import { SortKey, SortState } from "@/lib/order-table";
-import { addDaysIso, formatShort } from "@/lib/date-ranges";
+import { formatShort } from "@/lib/date-ranges";
 
 const COLUMNS: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "order_id", label: "Order" },
   { key: "customer", label: "Customer" },
-  { key: "fulfillment_date", label: "Fulfilment" },
+  { key: "order_date", label: "Ordered" },
   { key: "items", label: "Boxes / items" },
   { key: "total", label: "Total", align: "right" },
   { key: "status", label: "Status" },
@@ -36,26 +36,10 @@ function SortIcon({ dir }: { dir: "asc" | "desc" | null }) {
   );
 }
 
-function Fulfilment({ order, todayIso }: { order: OrderWithDetails; todayIso: string }) {
-  const d = String(order.fulfillment_date ?? "").slice(0, 10);
+function OrderedDate({ order }: { order: OrderWithDetails }) {
+  const d = String(order.order_date ?? "").slice(0, 10);
   if (!d) return <span className="text-maroon-700/40">—</span>;
-  const closed = order.status === "Delivered" || order.status === "Cancelled";
-  let tag = "";
-  if (!closed && todayIso) {
-    if (d === todayIso) tag = "Today";
-    else if (d === addDaysIso(todayIso, 1)) tag = "Tomorrow";
-    else if (d < todayIso) tag = "Overdue";
-  }
-  return (
-    <div className="flex flex-col leading-tight">
-      <span className="whitespace-nowrap">{formatShort(d, true)}</span>
-      {tag && (
-        <span className={clsx("text-[11px] font-medium", tag === "Overdue" ? "text-red-400" : "text-marigold-600")}>
-          {tag}
-        </span>
-      )}
-    </div>
-  );
+  return <span className="whitespace-nowrap">{formatShort(d, true)}</span>;
 }
 
 function plural(n: number, one: string, many: string) {
@@ -69,7 +53,6 @@ export default function OrdersTable({
   onToggleAll,
   sort,
   onSort,
-  todayIso,
 }: {
   rows: OrderWithDetails[];
   selected: Set<string>;
@@ -77,7 +60,6 @@ export default function OrdersTable({
   onToggleAll: () => void;
   sort: SortState | null;
   onSort: (key: SortKey) => void;
-  todayIso: string;
 }) {
   const selectedCount = rows.reduce((n, r) => n + (selected.has(r.order_id) ? 1 : 0), 0);
   const allSelected = rows.length > 0 && selectedCount === rows.length;
@@ -184,7 +166,7 @@ export default function OrdersTable({
                   )}
                 </td>
                 <td className={clsx("px-3 py-3 align-middle text-maroon-800", isCompleted && "opacity-60")}>
-                  <Fulfilment order={order} todayIso={todayIso} />
+                  <OrderedDate order={order} />
                 </td>
                 <td className={clsx("px-3 py-3 align-middle text-maroon-800 whitespace-nowrap", isCompleted && "opacity-60")}>
                   {order.totalBoxes > 0 && <span>{plural(order.totalBoxes, "box", "boxes")}</span>}

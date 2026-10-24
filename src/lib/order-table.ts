@@ -6,6 +6,7 @@ import { ORDER_STATUSES, OrderWithDetails, PAYMENT_STATUSES } from "./types";
 export type SortKey =
   | "order_id"
   | "customer"
+  | "order_date"
   | "fulfillment_date"
   | "items"
   | "total"
@@ -21,8 +22,8 @@ export interface OrderFilters {
   query: string;
   status: string; // "All" or an OrderStatus
   payment: string; // "All" or a PaymentStatus
-  from: string; // fulfillment date, "" = no lower bound
-  to: string; // fulfillment date, "" = no upper bound
+  from: string; // date the order was placed, "" = no lower bound
+  to: string; // date the order was placed, "" = no upper bound
 }
 
 export const EMPTY_FILTERS: OrderFilters = { query: "", status: "All", payment: "All", from: "", to: "" };
@@ -33,7 +34,7 @@ export function filterOrders(orders: OrderWithDetails[], f: OrderFilters): Order
     if (f.status !== "All" && o.status !== f.status) return false;
     if (f.payment !== "All" && o.payment_status !== f.payment) return false;
     if (f.from || f.to) {
-      const d = String(o.fulfillment_date ?? "").slice(0, 10);
+      const d = String(o.order_date ?? "").slice(0, 10);
       if (!d) return false;
       if (f.from && d < f.from) return false;
       if (f.to && d > f.to) return false;
@@ -63,6 +64,8 @@ function compare(a: OrderWithDetails, b: OrderWithDetails, key: SortKey): number
       return a.order_id.localeCompare(b.order_id, undefined, { numeric: true });
     case "customer":
       return (a.customer?.name ?? "").localeCompare(b.customer?.name ?? "", undefined, { sensitivity: "base" });
+    case "order_date":
+      return String(a.order_date ?? "").localeCompare(String(b.order_date ?? ""));
     case "fulfillment_date":
       return String(a.fulfillment_date ?? "").localeCompare(String(b.fulfillment_date ?? ""));
     case "items":
@@ -84,9 +87,9 @@ export function sortOrders(orders: OrderWithDetails[], sort: SortState | null): 
     .map((o, i) => ({ o, i }))
     .sort((x, y) => {
       // Orders with no date always sink to the bottom, whichever way we sort.
-      if (sort.key === "fulfillment_date") {
-        const xe = !x.o.fulfillment_date;
-        const ye = !y.o.fulfillment_date;
+      if (sort.key === "fulfillment_date" || sort.key === "order_date") {
+        const xe = !x.o[sort.key];
+        const ye = !y.o[sort.key];
         if (xe !== ye) return xe ? 1 : -1;
       }
       return compare(x.o, y.o, sort.key) * factor || x.i - y.i; // stable
