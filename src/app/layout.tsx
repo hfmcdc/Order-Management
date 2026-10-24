@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import SplashScreen from "@/components/SplashScreen";
+import MotionProvider from "@/components/motion/MotionProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
 // Playfair Display: a serif with real editorial weight — reads as a premium
@@ -43,13 +44,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className="font-sans">
-        <SplashScreen />
-        <div className="min-h-screen flex flex-col md:flex-row">
-          <Nav />
-          <main className="flex-1 pb-28 md:pb-10 px-5 md:px-10 pt-6 md:pt-10 max-w-5xl w-full mx-auto">
-            {children}
-          </main>
-        </div>
+        <MotionProvider>
+          <SplashScreen />
+          <div className="min-h-screen flex flex-col md:flex-row">
+            <Nav />
+            <main className="flex-1 pb-28 md:pb-10 px-5 md:px-10 pt-6 md:pt-10 max-w-5xl w-full mx-auto">
+              {children}
+            </main>
+          </div>
+        </MotionProvider>
       </body>
     </html>
   );

@@ -62,6 +62,10 @@ button, a, input, select, textarea {
   .no-print {
     display: none !important;
   }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 @page {
@@ -76,4 +80,129 @@ button, a, input, select, textarea {
 @keyframes splash-rise {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion system                                                       */
+/* Micro-interactions live in CSS (zero JS cost). Anything physical    */
+/* (springs, shared-layout pills, enter/exit) lives in framer-motion   */
+/* components under src/components/motion.                             */
+/* ------------------------------------------------------------------ */
+
+/* Smooth focus glow on every field instead of the browser's hard outline */
+input, select, textarea {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.55), 0 0 18px rgba(217, 164, 65, 0.18);
+}
+
+/* Tactile press: any button/link with .press shrinks slightly while held */
+.press {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s, box-shadow 0.2s;
+}
+.press:active {
+  transform: scale(0.96);
+}
+
+/* Hover lift for tappable cards/rows (only on devices that can hover) */
+.lift {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 34px rgba(0, 0, 0, 0.45);
+    border-color: rgba(217, 164, 65, 0.28);
+  }
+}
+.lift:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* Skeleton shimmer (warm gold sweep that matches the theme) */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    rgba(241, 230, 210, 0.04) 20%,
+    rgba(217, 164, 65, 0.12) 40%,
+    rgba(241, 230, 210, 0.04) 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 14px;
+}
+
+/* A slow light sweep across the accent (wine) cards */
+@keyframes sheen {
+  0%, 70% { transform: translateX(-130%) skewX(-18deg); }
+  100% { transform: translateX(260%) skewX(-18deg); }
+}
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(241, 230, 210, 0.12), transparent);
+  animation: sheen 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Status badge pop when its text changes (badge is re-keyed on change) */
+@keyframes badge-pop {
+  0% { transform: scale(0.7); opacity: 0.2; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.badge-pop {
+  animation: badge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Breathing glow for the primary "+" button */
+@keyframes fab-glow {
+  0%, 100% { box-shadow: 0 8px 20px rgba(217, 164, 65, 0.28), 0 0 0 0 rgba(217, 164, 65, 0.35); }
+  50% { box-shadow: 0 8px 26px rgba(217, 164, 65, 0.42), 0 0 0 10px rgba(217, 164, 65, 0); }
+}
+.fab-glow {
+  animation: fab-glow 3.2s ease-in-out infinite;
+}
+
+/* Gold sweep that runs across primary buttons on hover */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -60%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .btn-shine:hover::after {
+    left: 130%;
+  }
+}
+
+/* Respect "reduce motion" for everything that is CSS-driven. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

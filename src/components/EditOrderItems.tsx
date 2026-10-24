@@ -7,6 +7,7 @@ import QuantitySelector from "@/components/QuantitySelector";
 import { Box, OrderWithDetails, Product, ProductUnit } from "@/lib/types";
 import { dedupeProductUnits, isSoldIndividually } from "@/lib/product-units";
 import clsx from "clsx";
+import AnimatedNumber from "@/components/motion/AnimatedNumber";
 
 // Item keys: "productId" for a plain product, or "productId::unitLabel" for
 // a specific unit of a multi-unit product (e.g. Halwa "250g").
@@ -245,19 +246,21 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
       <div className="sticky bottom-20 md:bottom-4 bg-ivory/95 backdrop-blur border border-clay-300 rounded-card px-4 py-3 flex items-center justify-between shadow-lg">
         <div>
           <p className="text-xs text-maroon-700/60">New order total</p>
-          <p className="font-display font-700 text-xl text-maroon-800">₹{total}</p>
+          <p className="font-display font-700 text-xl text-maroon-800">
+            <AnimatedNumber value={total} prefix="₹" duration={0.45} />
+          </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium px-5"
+            className="press touch-target rounded-full bg-clay-100 text-maroon-800 font-medium px-5"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="touch-target rounded-full bg-marigold-500 text-ink font-semibold px-6 disabled:opacity-60"
+            className="press touch-target rounded-full bg-marigold-500 text-ink font-semibold px-6 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save changes"}
           </button>

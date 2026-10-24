@@ -5,7 +5,13 @@ import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState } from "@/components/StateViews";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
 import { OrderWithDetails, OrderItem, ORDER_STATUSES, PAYMENT_STATUSES, PaymentMethod } from "@/lib/types";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import Modal from "@/components/motion/Modal";
+import SegmentedPills from "@/components/motion/SegmentedPills";
+import ConfettiBurst from "@/components/motion/ConfettiBurst";
+import AnimatedNumber from "@/components/motion/AnimatedNumber";
+import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import EditOrderItems from "@/components/EditOrderItems";
 import { buildInvoicePdf } from "@/lib/invoice-pdf";
 import { BUSINESS_ADDRESS, BUSINESS_NAME, BUSINESS_PHONE } from "@/lib/business-info";
@@ -29,6 +35,12 @@ export default function OrderDetailPage() {
   const [deliveredPrompt, setDeliveredPrompt] = useState<"ask-paid" | "ask-method" | null>(null);
   // Same "cash or UPI?" question, but for tapping Paid directly in the Payment row
   const [paymentPrompt, setPaymentPrompt] = useState(false);
+  // Bumped each time the order becomes Delivered + Paid → fires the confetti
+  const [burst, setBurst] = useState(0);
+  // Remembers the last step so the modal keeps its content while animating out
+  const lastDeliveredStep = useRef<"ask-paid" | "ask-method">("ask-paid");
+  if (deliveredPrompt) lastDeliveredStep.current = deliveredPrompt;
+  const deliveredStep = deliveredPrompt ?? lastDeliveredStep.current;
 
   async function patchOrder(body: Record<string, any>) {
     setBusy(true);
@@ -45,6 +57,12 @@ export default function OrderDetailPage() {
         router.push("/orders");
         return;
       }
+      const before = data?.order;
+      const wasComplete = before?.status === "Delivered" && before?.payment_status === "Paid";
+      const nowComplete =
+        (body.status ?? before?.status) === "Delivered" &&
+        (body.payment_status ?? before?.payment_status) === "Paid";
+      if (nowComplete && !wasComplete) setBurst((b) => b + 1);
       refresh();
     } catch (err: any) {
       setActionError(err.message ?? "Unable to update the order. Please try again.");
@@ -202,8 +220,8 @@ export default function OrderDetailPage() {
         <p className="text-right font-semibold mt-3 text-lg">Total: ₹{order.total}</p>
       </div>
 
-      <div className="no-print flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+      <Stagger className="no-print flex flex-col gap-6">
+        <StaggerItem className="flex items-center justify-between">
           <button
             onClick={() => router.push("/orders")}
             className="self-start text-sm text-marigold-600 font-medium touch-target"
@@ -213,20 +231,21 @@ export default function OrderDetailPage() {
           <div className="flex gap-2">
             <button
               onClick={() => window.print()}
-              className="touch-target rounded-full bg-ivory border border-clay-300 text-maroon-800 text-sm font-medium px-4"
+              className="press touch-target rounded-full bg-ivory border border-clay-300 text-maroon-800 text-sm font-medium px-4"
             >
               Print
             </button>
             <button
               onClick={shareOnWhatsApp}
               disabled={sharing}
-              className="touch-target rounded-full bg-leaf-500 text-white text-sm font-medium px-4 disabled:opacity-60"
+              className="press touch-target rounded-full bg-leaf-500 text-white text-sm font-medium px-4 disabled:opacity-60"
             >
               {sharing ? "Preparing…" : "WhatsApp"}
             </button>
           </div>
-        </div>
+        </StaggerItem>
 
+        <StaggerItem>
         <header className="flex items-start justify-between gap-3">
           <div>
             <h1
@@ -245,17 +264,23 @@ export default function OrderDetailPage() {
             <PaymentStatusBadge status={order.payment_status} />
           </div>
         </header>
+        </StaggerItem>
 
-        <section className="rounded-card bg-ivory border border-clay-300/70 p-4 grid grid-cols-2 gap-4 text-sm">
+        <StaggerItem className="rounded-card bg-ivory border border-clay-300/70 p-4 grid grid-cols-2 gap-4 text-sm">
           <Info label="Order date" value={order.order_date} />
           <Info label="Boxes" value={String(order.totalBoxes)} />
           <Info label="Individual items" value={String(order.totalIndividualItems)} />
           <Info label="Total items" value={String(order.totalItems)} />
-          <Info label="Order total" value={`₹${order.total}`} />
+          <div>
+            <p className="text-xs text-maroon-700/60">Order total</p>
+            <p className="font-medium text-maroon-800">
+              <AnimatedNumber value={order.total} prefix="₹" />
+            </p>
+          </div>
           {order.payment_method && <Info label="Paid via" value={order.payment_method} />}
-        </section>
+        </StaggerItem>
 
-        <section className="flex flex-col gap-2">
+        <StaggerItem className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <h2 className="font-display font-600 text-lg text-maroon-800">Items</h2>
             {order.status !== "Cancelled" && (
@@ -278,60 +303,40 @@ export default function OrderDetailPage() {
               </div>
             ))}
           </div>
-        </section>
+        </StaggerItem>
 
         {order.notes && (
-          <section>
+          <StaggerItem>
             <h2 className="font-display font-600 text-lg text-maroon-800 mb-1">Notes</h2>
             <p className="text-sm text-maroon-700/80 bg-ivory rounded-card border border-clay-300/70 p-3 whitespace-pre-line">
               {order.notes}
             </p>
-          </section>
+          </StaggerItem>
         )}
 
-        <section className="flex flex-col gap-3">
+        <StaggerItem className="flex flex-col gap-3">
           <h2 className="font-display font-600 text-lg text-maroon-800">Update status</h2>
-          <div className="flex flex-wrap gap-2">
-            {ORDER_STATUSES.filter((s) => s !== "Cancelled").map((s) => (
-              <button
-                key={s}
-                disabled={busy}
-                onClick={() => handleStatusClick(s)}
-                className={`touch-target px-4 rounded-full text-sm font-medium border ${
-                  order.status === s
-                    ? "bg-wine-700 text-white border-wine-700"
-                    : "bg-ivory text-maroon-800 border-clay-300"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          <SegmentedPills
+            options={ORDER_STATUSES.filter((s) => s !== "Cancelled")}
+            value={order.status}
+            disabled={busy}
+            onSelect={handleStatusClick}
+          />
 
           <h2 className="font-display font-600 text-lg text-maroon-800 mt-2">Payment</h2>
-          <div className="flex flex-wrap gap-2">
-            {PAYMENT_STATUSES.map((s) => (
-              <button
-                key={s}
-                disabled={busy}
-                onClick={() => handlePaymentClick(s)}
-                className={`touch-target px-4 rounded-full text-sm font-medium border ${
-                  order.payment_status === s
-                    ? "bg-wine-700 text-white border-wine-700"
-                    : "bg-ivory text-maroon-800 border-clay-300"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          <SegmentedPills
+            options={PAYMENT_STATUSES}
+            value={order.payment_status}
+            disabled={busy}
+            onSelect={handlePaymentClick}
+          />
 
           <div className="mt-2">
             {order.status === "Cancelled" ? (
               <button
                 disabled={busy}
                 onClick={() => patchOrder({ action: "restore" })}
-                className="touch-target rounded-full bg-leaf-500 text-white font-medium px-5"
+                className="press touch-target rounded-full bg-leaf-500 text-white font-medium px-5"
               >
                 Restore order
               </button>
@@ -339,140 +344,136 @@ export default function OrderDetailPage() {
               <button
                 disabled={busy}
                 onClick={() => setShowCancelChoice(true)}
-                className="touch-target rounded-full bg-maroon-900/10 text-maroon-800 font-medium px-5"
+                className="press touch-target rounded-full bg-maroon-900/10 text-maroon-800 font-medium px-5"
               >
                 Cancel order
               </button>
             )}
           </div>
-        </section>
+        </StaggerItem>
 
         {actionError && <ErrorState message={actionError} />}
-      </div>
+      </Stagger>
 
-      {deliveredPrompt === "ask-paid" && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
-          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
-            <h3 className="font-display font-700 text-lg text-maroon-800">Was this order paid?</h3>
-            <p className="text-sm text-maroon-700/70">You&apos;re marking {order.order_id} as Delivered.</p>
-            <button
-              disabled={busy}
-              onClick={() => setDeliveredPrompt("ask-method")}
-              className="touch-target rounded-full bg-leaf-500 text-white font-medium"
+      {/* Delivered flow: one modal, content slides between the two questions */}
+      <Modal open={deliveredPrompt !== null} onClose={() => setDeliveredPrompt(null)}>
+        <AnimatePresence mode="wait" initial={false}>
+          {deliveredStep === "ask-paid" ? (
+            <motion.div
+              key="ask-paid"
+              className="flex flex-col gap-3"
+              initial={{ opacity: 0, x: -24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.16 }}
             >
-              Paid
-            </button>
-            <button
-              disabled={busy}
-              onClick={markDeliveredUnpaid}
-              className="touch-target rounded-full bg-ivory border border-clay-300 text-maroon-800 font-medium"
+              <h3 className="font-display font-700 text-lg text-maroon-800">Was this order paid?</h3>
+              <p className="text-sm text-maroon-700/70">You&apos;re marking {order.order_id} as Delivered.</p>
+              <ModalButton disabled={busy} onClick={() => setDeliveredPrompt("ask-method")} className="bg-leaf-500 text-white">
+                Paid
+              </ModalButton>
+              <ModalButton disabled={busy} onClick={markDeliveredUnpaid} className="bg-ivory border border-clay-300 text-maroon-800">
+                Not yet
+              </ModalButton>
+              <ModalButton onClick={() => setDeliveredPrompt(null)} className="bg-clay-100 text-maroon-800">
+                Never mind
+              </ModalButton>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="ask-method"
+              className="flex flex-col gap-3"
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 24 }}
+              transition={{ duration: 0.16 }}
             >
-              Not yet
-            </button>
-            <button
-              onClick={() => setDeliveredPrompt(null)}
-              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
-            >
-              Never mind
-            </button>
-          </div>
-        </div>
-      )}
+              <h3 className="font-display font-700 text-lg text-maroon-800">Paid by cash or UPI?</h3>
+              <ModalButton disabled={busy} onClick={() => markDeliveredPaid("Cash")} className="bg-wine-700 text-white">
+                Cash
+              </ModalButton>
+              <ModalButton disabled={busy} onClick={() => markDeliveredPaid("UPI")} className="bg-wine-700 text-white">
+                UPI
+              </ModalButton>
+              <ModalButton onClick={() => setDeliveredPrompt(null)} className="bg-clay-100 text-maroon-800">
+                Never mind
+              </ModalButton>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Modal>
 
-      {deliveredPrompt === "ask-method" && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
-          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
-            <h3 className="font-display font-700 text-lg text-maroon-800">Paid by cash or UPI?</h3>
-            <button
-              disabled={busy}
-              onClick={() => markDeliveredPaid("Cash")}
-              className="touch-target rounded-full bg-wine-700 text-white font-medium"
-            >
-              Cash
-            </button>
-            <button
-              disabled={busy}
-              onClick={() => markDeliveredPaid("UPI")}
-              className="touch-target rounded-full bg-wine-700 text-white font-medium"
-            >
-              UPI
-            </button>
-            <button
-              onClick={() => setDeliveredPrompt(null)}
-              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
-            >
-              Never mind
-            </button>
-          </div>
-        </div>
-      )}
+      <Modal open={paymentPrompt} onClose={() => setPaymentPrompt(false)}>
+        <h3 className="font-display font-700 text-lg text-maroon-800">Paid by cash or UPI?</h3>
+        <ModalButton disabled={busy} onClick={() => markPaid("Cash")} className="bg-wine-700 text-white">
+          Cash
+        </ModalButton>
+        <ModalButton disabled={busy} onClick={() => markPaid("UPI")} className="bg-wine-700 text-white">
+          UPI
+        </ModalButton>
+        <ModalButton onClick={() => setPaymentPrompt(false)} className="bg-clay-100 text-maroon-800">
+          Never mind
+        </ModalButton>
+      </Modal>
 
-      {paymentPrompt && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
-          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
-            <h3 className="font-display font-700 text-lg text-maroon-800">Paid by cash or UPI?</h3>
-            <button
-              disabled={busy}
-              onClick={() => markPaid("Cash")}
-              className="touch-target rounded-full bg-wine-700 text-white font-medium"
-            >
-              Cash
-            </button>
-            <button
-              disabled={busy}
-              onClick={() => markPaid("UPI")}
-              className="touch-target rounded-full bg-wine-700 text-white font-medium"
-            >
-              UPI
-            </button>
-            <button
-              onClick={() => setPaymentPrompt(false)}
-              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
-            >
-              Never mind
-            </button>
-          </div>
-        </div>
-      )}
+      <Modal open={showCancelChoice} onClose={() => setShowCancelChoice(false)}>
+        <h3 className="font-display font-700 text-lg text-maroon-800">What should happen to this order?</h3>
+        <p className="text-sm text-maroon-700/70">
+          You can mark it as Cancelled (kept in your records, excluded from production) or delete it
+          permanently (can&apos;t be undone).
+        </p>
+        <ModalButton
+          disabled={busy}
+          onClick={() => {
+            setShowCancelChoice(false);
+            patchOrder({ action: "cancel" });
+          }}
+          className="bg-wine-700 text-white"
+        >
+          Mark as Cancelled
+        </ModalButton>
+        <ModalButton
+          disabled={busy}
+          onClick={() => {
+            setShowCancelChoice(false);
+            patchOrder({ action: "delete" });
+          }}
+          className="bg-ivory border border-red-400/50 text-red-400"
+        >
+          Delete permanently
+        </ModalButton>
+        <ModalButton onClick={() => setShowCancelChoice(false)} className="bg-clay-100 text-maroon-800">
+          Never mind
+        </ModalButton>
+      </Modal>
 
-      {showCancelChoice && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-4 md:pb-0">
-          <div className="w-full md:w-96 rounded-card bg-ivory p-5 flex flex-col gap-3">
-            <h3 className="font-display font-700 text-lg text-maroon-800">What should happen to this order?</h3>
-            <p className="text-sm text-maroon-700/70">
-              You can mark it as Cancelled (kept in your records, excluded from production) or delete it
-              permanently (can&apos;t be undone).
-            </p>
-            <button
-              disabled={busy}
-              onClick={() => {
-                setShowCancelChoice(false);
-                patchOrder({ action: "cancel" });
-              }}
-              className="touch-target rounded-full bg-wine-700 text-white font-medium"
-            >
-              Mark as Cancelled
-            </button>
-            <button
-              disabled={busy}
-              onClick={() => {
-                setShowCancelChoice(false);
-                patchOrder({ action: "delete" });
-              }}
-              className="touch-target rounded-full bg-ivory border border-red-400/50 text-red-400 font-medium"
-            >
-              Delete permanently
-            </button>
-            <button
-              onClick={() => setShowCancelChoice(false)}
-              className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium"
-            >
-              Never mind
-            </button>
-          </div>
-        </div>
-      )}
+      <ConfettiBurst burstKey={burst} />
     </div>
+  );
+}
+
+function ModalButton({
+  children,
+  onClick,
+  disabled,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      whileTap={{ scale: 0.96 }}
+      whileHover={{ scale: 1.015 }}
+      className={`touch-target rounded-full font-medium disabled:opacity-60 ${className ?? ""}`}
+    >
+      {children}
+    </motion.button>
   );
 }
 

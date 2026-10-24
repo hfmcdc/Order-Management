@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
+import AnimatedNumber from "@/components/motion/AnimatedNumber";
+import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { ProductionRow } from "@/lib/types";
@@ -43,7 +46,7 @@ export default function ProductionPage() {
         </div>
         <button
           onClick={() => window.print()}
-          className="touch-target rounded-full bg-wine-700 text-white font-medium px-5"
+          className="press touch-target rounded-full bg-wine-700 text-white font-medium px-5"
         >
           Print production list
         </button>
@@ -63,7 +66,12 @@ export default function ProductionPage() {
               <p className="text-sm text-maroon-700/60 px-1">No product matches &quot;{query}&quot;.</p>
             ) : (
               searchMatches.map((row) => (
-                <div key={`${row.product_id}::${row.unit_label}`} className="card px-5 py-4">
+                <motion.div
+                  key={`${row.product_id}::${row.unit_label}`}
+                  className="card px-5 py-4"
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                >
                   <p className="font-display font-600 text-maroon-800 mb-2">{row.name}</p>
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div>
@@ -76,10 +84,12 @@ export default function ProductionPage() {
                     </div>
                     <div>
                       <p className="text-xs text-maroon-700/60">Total</p>
-                      <p className="font-display font-700 text-lg text-marigold-600">{row.total}</p>
+                      <p className="font-display font-700 text-lg text-marigold-600">
+                        <AnimatedNumber value={row.total} duration={0.5} />
+                      </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))
             )}
           </div>
@@ -109,13 +119,13 @@ export default function ProductionPage() {
       )}
 
       {data && (
-        <div className="flex flex-col gap-5">
+        <Stagger className="flex flex-col gap-5">
           <ProductionGroup title="Sweets" rows={sweets} />
           <ProductionGroup title="Snacks" rows={snacks} />
           {other.length > 0 && <ProductionGroup title="Other products" rows={other} />}
 
           {data.boxTotals.length > 0 && (
-            <section className="flex flex-col gap-2">
+            <StaggerItem className="flex flex-col gap-2">
               <h2 className="font-display font-600 text-lg text-maroon-800">Boxes</h2>
               <div className="card divide-y divide-clay-100">
                 {data.boxTotals.map((b) => (
@@ -125,11 +135,11 @@ export default function ProductionPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </StaggerItem>
           )}
 
           {data.customerOrders.length > 0 && (
-            <section className="flex flex-col gap-2">
+            <StaggerItem className="flex flex-col gap-2">
               <h2 className="font-display font-600 text-lg text-maroon-800">Customer orders</h2>
               <div className="card overflow-hidden">
                 <table className="w-full text-sm">
@@ -149,9 +159,9 @@ export default function ProductionPage() {
                   </tbody>
                 </table>
               </div>
-            </section>
+            </StaggerItem>
           )}
-        </div>
+        </Stagger>
       )}
     </div>
   );
@@ -160,7 +170,7 @@ export default function ProductionPage() {
 function ProductionGroup({ title, rows }: { title: string; rows: ProductionRow[] }) {
   if (rows.length === 0) return null;
   return (
-    <section className="flex flex-col gap-2">
+    <StaggerItem className="flex flex-col gap-2">
       <h2 className="font-display font-600 text-lg text-maroon-800">{title}</h2>
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
@@ -174,7 +184,10 @@ function ProductionGroup({ title, rows }: { title: string; rows: ProductionRow[]
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={`${row.product_id}::${row.unit_label}`} className="border-t border-clay-100">
+              <tr
+                key={`${row.product_id}::${row.unit_label}`}
+                className="border-t border-clay-100 transition-colors hover:bg-clay-100/40"
+              >
                 <td className="px-4 py-2.5">{row.name}</td>
                 <td className="px-4 py-2.5 text-right">{row.fromBoxes}</td>
                 <td className="px-4 py-2.5 text-right">{row.individual}</td>
@@ -184,6 +197,6 @@ function ProductionGroup({ title, rows }: { title: string; rows: ProductionRow[]
           </tbody>
         </table>
       </div>
-    </section>
+    </StaggerItem>
   );
 }

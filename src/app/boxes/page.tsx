@@ -202,13 +202,13 @@ function BoxEditor({
         <button
           onClick={submit}
           disabled={saving}
-          className="touch-target flex-1 rounded-full bg-marigold-500 text-ink font-medium"
+          className="press touch-target flex-1 rounded-full bg-marigold-500 text-ink font-medium"
         >
           {saving ? "Saving…" : submitLabel}
         </button>
         <button
           onClick={onCancel}
-          className="touch-target px-5 rounded-full bg-clay-100 text-maroon-800 font-medium"
+          className="press touch-target px-5 rounded-full bg-clay-100 text-maroon-800 font-medium"
         >
           Cancel
         </button>
@@ -305,7 +305,7 @@ export default function BoxesPage() {
             setEditingId(null);
             setShowForm(!showForm);
           }}
-          className="touch-target rounded-full bg-marigold-500 text-ink font-semibold px-5"
+          className="press touch-target rounded-full bg-marigold-500 text-ink font-semibold px-5"
         >
           + Add
         </button>

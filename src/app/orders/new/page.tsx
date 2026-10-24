@@ -8,6 +8,10 @@ import { LoadingState, ErrorState } from "@/components/StateViews";
 import { Box, Customer, Product, ProductUnit } from "@/lib/types";
 import { dedupeProductUnits, isSoldIndividually } from "@/lib/product-units";
 import clsx from "clsx";
+import { motion } from "framer-motion";
+import AnimatedCheck from "@/components/motion/AnimatedCheck";
+import ConfettiBurst from "@/components/motion/ConfettiBurst";
+import AnimatedNumber from "@/components/motion/AnimatedNumber";
 
 // Item keys: "productId" for a plain product, or "productId::unitLabel" for
 // a specific unit of a multi-unit product (e.g. Halwa "250g").
@@ -204,25 +208,43 @@ export default function NewOrderPage() {
   if (savedOrderId) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-        <div className="w-16 h-16 rounded-full bg-leaf-500/15 flex items-center justify-center text-leaf-600 text-3xl">
-          ✓
-        </div>
-        <h1 className="font-display font-700 text-xl text-maroon-800">Order saved</h1>
-        <p className="text-maroon-700/70 text-sm">Order {savedOrderId} for {selectedCustomer?.name}</p>
-        <div className="flex gap-3 mt-2">
+        <ConfettiBurst burstKey={1} />
+        <AnimatedCheck size={72} />
+        <motion.h1
+          className="font-display font-700 text-xl text-maroon-800"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          Order saved
+        </motion.h1>
+        <motion.p
+          className="text-maroon-700/70 text-sm"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          Order {savedOrderId} for {selectedCustomer?.name}
+        </motion.p>
+        <motion.div
+          className="flex gap-3 mt-2"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
           <button
             onClick={() => router.push(`/orders/${savedOrderId}`)}
-            className="touch-target rounded-full bg-wine-700 text-white px-5 font-medium"
+            className="press touch-target rounded-full bg-wine-700 text-white px-5 font-medium"
           >
             View order
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="touch-target rounded-full bg-marigold-500 text-ink px-5 font-medium"
+            className="press btn-shine touch-target rounded-full bg-marigold-500 text-ink px-5 font-medium"
           >
             + Add another order
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -466,12 +488,14 @@ export default function NewOrderPage() {
       <div className="sticky bottom-20 md:bottom-4 bg-ivory/95 backdrop-blur border border-clay-300 rounded-card px-4 py-3 flex items-center justify-between shadow-lg">
         <div>
           <p className="text-xs text-maroon-700/60">Order total</p>
-          <p className="font-display font-700 text-xl text-maroon-800">₹{total}</p>
+          <p className="font-display font-700 text-xl text-maroon-800">
+            <AnimatedNumber value={total} prefix="₹" duration={0.45} />
+          </p>
         </div>
         <button
           onClick={saveOrder}
           disabled={saving}
-          className="touch-target rounded-full bg-marigold-500 text-ink font-semibold px-6 disabled:opacity-60"
+          className="press touch-target rounded-full bg-marigold-500 text-ink font-semibold px-6 disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save order"}
         </button>

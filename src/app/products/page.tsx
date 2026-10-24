@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { Product, ProductUnit, UnitContext } from "@/lib/types";
@@ -85,7 +87,7 @@ export default function ProductsPage() {
         </div>
         <button
           onClick={() => (showForm ? closeForm() : setShowForm(true))}
-          className="touch-target rounded-full bg-marigold-500 text-ink font-semibold px-5"
+          className="press touch-target rounded-full bg-marigold-500 text-ink font-semibold px-5"
         >
           + Add
         </button>
@@ -153,13 +155,13 @@ export default function ProductsPage() {
             <button
               onClick={addProduct}
               disabled={saving}
-              className="touch-target flex-1 rounded-full bg-marigold-500 text-ink font-medium"
+              className="press touch-target flex-1 rounded-full bg-marigold-500 text-ink font-medium"
             >
               {saving ? "Saving…" : "Save product"}
             </button>
             <button
               onClick={closeForm}
-              className="touch-target px-5 rounded-full bg-clay-100 text-maroon-800 font-medium"
+              className="press touch-target px-5 rounded-full bg-clay-100 text-maroon-800 font-medium"
             >
               Cancel
             </button>
@@ -178,11 +180,11 @@ export default function ProductsPage() {
       )}
 
       {data && data.products.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <Stagger className="flex flex-col gap-2">
           {data.products.map((p) => {
             const units = (unitsData?.units ?? []).filter((u) => u.product_id === p.product_id);
             return (
-              <div key={p.product_id} className="rounded-card bg-ivory border border-clay-300/70 overflow-hidden">
+              <StaggerItem key={p.product_id} className="rounded-card bg-ivory border border-clay-300/70 overflow-hidden">
                 <button
                   onClick={() => setExpanded(expanded === p.product_id ? null : p.product_id)}
                   className="w-full touch-target px-4 py-3 flex items-center justify-between text-left"
@@ -218,20 +220,35 @@ export default function ProductsPage() {
                     >
                       Delete
                     </button>
-                    <span className="text-maroon-700/40">{expanded === p.product_id ? "▲" : "▼"}</span>
+                    <motion.span
+                      className="text-maroon-700/40 inline-block text-xs"
+                      animate={{ rotate: expanded === p.product_id ? 180 : 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                    >
+                      ▼
+                    </motion.span>
                   </div>
                 </button>
-                {expanded === p.product_id && (
-                  <>
-                    <ProductEditor product={p} onSaved={refresh} />
-                    <ProductUnitsManager product={p} units={units} onChanged={refreshUnits} />
-                    <ProductCustomers productId={p.product_id} />
-                  </>
-                )}
-              </div>
+                <AnimatePresence initial={false}>
+                  {expanded === p.product_id && (
+                    <motion.div
+                      key="panel"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 34 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <ProductEditor product={p} onSaved={refresh} />
+                      <ProductUnitsManager product={p} units={units} onChanged={refreshUnits} />
+                      <ProductCustomers productId={p.product_id} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </StaggerItem>
             );
           })}
-        </div>
+        </Stagger>
       )}
     </div>
   );
@@ -379,7 +396,7 @@ function ProductUnitsManager({
             <button
               onClick={addUnit}
               disabled={saving}
-              className="touch-target flex-1 rounded-full bg-marigold-500 text-ink text-sm font-medium"
+              className="press touch-target flex-1 rounded-full bg-marigold-500 text-ink text-sm font-medium"
             >
               {saving ? "Saving…" : "Add unit"}
             </button>
@@ -388,7 +405,7 @@ function ProductUnitsManager({
                 setShowAdd(false);
                 setUnitError(null);
               }}
-              className="touch-target px-4 rounded-full bg-clay-100 text-maroon-800 text-sm font-medium"
+              className="press touch-target px-4 rounded-full bg-clay-100 text-maroon-800 text-sm font-medium"
             >
               Cancel
             </button>
@@ -496,11 +513,24 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
         <button
           onClick={save}
           disabled={saving || !changed}
-          className="touch-target rounded-full bg-marigold-500 text-ink text-sm font-medium px-5 disabled:opacity-40"
+          className="press touch-target rounded-full bg-marigold-500 text-ink text-sm font-medium px-5 disabled:opacity-40"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
-        {saved && !changed && <span className="text-xs text-maroon-700/60">Saved ✓</span>}
+        <AnimatePresence>
+          {saved && !changed && (
+            <motion.span
+              key="saved"
+              className="text-xs text-leaf-600"
+              initial={{ opacity: 0, scale: 0.6, x: -6 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ type: "spring", stiffness: 420, damping: 18 }}
+            >
+              Saved ✓
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -580,13 +610,13 @@ function UnitEditForm({
         <button
           onClick={save}
           disabled={saving}
-          className="touch-target flex-1 rounded-full bg-marigold-500 text-ink text-sm font-medium"
+          className="press touch-target flex-1 rounded-full bg-marigold-500 text-ink text-sm font-medium"
         >
           {saving ? "Saving…" : "Save unit"}
         </button>
         <button
           onClick={onCancel}
-          className="touch-target px-4 rounded-full bg-clay-100 text-maroon-800 text-sm font-medium"
+          className="press touch-target px-4 rounded-full bg-clay-100 text-maroon-800 text-sm font-medium"
         >
           Cancel
         </button>

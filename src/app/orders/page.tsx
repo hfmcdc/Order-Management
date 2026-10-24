@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/StatusBadge";
@@ -36,7 +37,7 @@ export default function OrdersPage() {
         </div>
         <Link
           href="/orders/new"
-          className="hidden md:flex touch-target items-center rounded-full bg-marigold-500 text-ink font-semibold px-5 shadow-md shadow-marigold-500/25 hover:bg-marigold-600 transition-colors"
+          className="press btn-shine hidden md:flex touch-target items-center rounded-full bg-marigold-500 text-ink font-semibold px-5 shadow-md shadow-marigold-500/25 hover:bg-marigold-600 transition-colors"
         >
           + New Order
         </Link>
@@ -71,37 +72,54 @@ export default function OrdersPage() {
       )}
 
       {data && filtered.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {filtered.map((order) => {
-            const isCompleted = order.status === "Delivered" && order.payment_status === "Paid";
-            return (
-              <Link
-                key={order.order_id}
-                href={`/orders/${order.order_id}`}
-                className={`card px-5 py-4 flex items-center justify-between gap-3 active:scale-[0.99] transition-transform ${
-                  isCompleted ? "opacity-60" : ""
-                }`}
-              >
-                <div className="min-w-0">
-                  <p
-                    className={`font-medium text-maroon-800 truncate ${
-                      isCompleted ? "line-through decoration-1" : ""
+        <div className="relative flex flex-col gap-3">
+          {/* Rows glide to their new spot when you search/filter, and leaving
+              rows fade out. Layout animation is skipped on very long lists. */}
+          <AnimatePresence initial={true} mode="popLayout">
+            {filtered.map((order, i) => {
+              const isCompleted = order.status === "Delivered" && order.payment_status === "Paid";
+              return (
+                <motion.div
+                  key={order.order_id}
+                  layout={filtered.length <= 60 ? "position" : false}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 340,
+                    damping: 30,
+                    delay: Math.min(i, 10) * 0.035,
+                  }}
+                >
+                  <Link
+                    href={`/orders/${order.order_id}`}
+                    className={`card lift px-5 py-4 flex items-center justify-between gap-3 ${
+                      isCompleted ? "opacity-60" : ""
                     }`}
                   >
-                    {order.customer?.name ?? "Unknown customer"}
-                  </p>
-                  <p className="text-xs text-maroon-700/60 mt-1">
-                    {order.order_id} · {order.totalBoxes} boxes · {order.totalIndividualItems} individual ·{" "}
-                    {order.order_date}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <OrderStatusBadge status={order.status} />
-                  <PaymentStatusBadge status={order.payment_status} />
-                </div>
-              </Link>
-            );
-          })}
+                    <div className="min-w-0">
+                      <p
+                        className={`font-medium text-maroon-800 truncate ${
+                          isCompleted ? "line-through decoration-1" : ""
+                        }`}
+                      >
+                        {order.customer?.name ?? "Unknown customer"}
+                      </p>
+                      <p className="text-xs text-maroon-700/60 mt-1">
+                        {order.order_id} · {order.totalBoxes} boxes · {order.totalIndividualItems} individual ·{" "}
+                        {order.order_date}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <OrderStatusBadge status={order.status} />
+                      <PaymentStatusBadge status={order.payment_status} />
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
     </div>

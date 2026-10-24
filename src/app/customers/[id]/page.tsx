@@ -134,13 +134,13 @@ export default function CustomerDetailPage() {
             <button
               onClick={saveCustomer}
               disabled={saving}
-              className="touch-target flex-1 rounded-full bg-marigold-500 text-ink font-medium"
+              className="press touch-target flex-1 rounded-full bg-marigold-500 text-ink font-medium"
             >
               {saving ? "Saving…" : "Save changes"}
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="touch-target px-4 rounded-full bg-clay-100 text-maroon-800 font-medium"
+              className="press touch-target px-4 rounded-full bg-clay-100 text-maroon-800 font-medium"
             >
               Cancel
             </button>
