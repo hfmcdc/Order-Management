@@ -14,26 +14,37 @@ export default function SegmentedPills<T extends string>({
   value,
   onSelect,
   disabled,
+  labelFor,
+  ariaLabel,
+  size = "md",
 }: {
   options: readonly T[];
   value: T;
   onSelect: (next: T) => void;
   disabled?: boolean;
+  /** Show something friendlier than the raw option value. */
+  labelFor?: (option: T) => string;
+  /** Names the group for screen readers, e.g. "Date range". */
+  ariaLabel?: string;
+  /** "sm" = shorter pills for dense desktop toolbars. */
+  size?: "sm" | "md";
 }) {
   const groupId = useId();
   return (
-    <div className="flex flex-wrap gap-2">
+    <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-2">
       {options.map((opt) => {
         const active = value === opt;
         return (
           <motion.button
             key={opt}
             type="button"
+            aria-pressed={active}
             disabled={disabled}
             onClick={() => onSelect(opt)}
             whileTap={{ scale: 0.93 }}
             className={clsx(
-              "relative touch-target px-4 rounded-full text-sm font-medium border transition-colors duration-200 disabled:opacity-70",
+              "relative px-4 rounded-full text-sm font-medium border transition-colors duration-200 disabled:opacity-70",
+              size === "sm" ? "min-h-[40px]" : "touch-target",
               active
                 ? "text-white border-wine-700"
                 : "bg-ivory text-maroon-800 border-clay-300 hover:border-marigold-400/60"
@@ -46,7 +57,7 @@ export default function SegmentedPills<T extends string>({
                 transition={{ type: "spring", stiffness: 450, damping: 34 }}
               />
             )}
-            <span className="relative z-10">{opt}</span>
+            <span className="relative z-10">{labelFor ? labelFor(opt) : opt}</span>
           </motion.button>
         );
       })}

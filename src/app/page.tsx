@@ -148,6 +148,12 @@ export default function DashboardPage() {
             >
               Production
             </Link>
+            <Link
+              href="/sales"
+              className="press touch-target hidden lg:flex items-center rounded-full bg-ivory text-maroon-800 font-medium px-5 shadow-sm hover:bg-clay-100"
+            >
+              Sales
+            </Link>
           </StaggerItem>
 
           {/* Payments received */}

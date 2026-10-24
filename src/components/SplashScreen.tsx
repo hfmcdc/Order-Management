@@ -72,7 +72,6 @@ export default function SplashScreen() {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.5 + p.i * 0.05, type: "spring", stiffness: 300, damping: 14 }}
-                style={{ transformOrigin: `${p.x}px ${p.y}px` }}
               />
             ))}
           </motion.svg>

@@ -17,6 +17,10 @@ Everything animated in the app comes from one of three places. Pick the lightest
 - `SegmentedPills` — one highlight glides between options (status / payment).
 - `ConfettiBurst` — `burstKey` → change to any new non-zero number to fire.
 - `AnimatedCheck` — circle pops, tick draws itself.
+- `Checkbox` — real `<input type="checkbox">` with a tick that draws itself (supports the select-all "dash").
+- `Notice` — success/error banner (`role=status` / `role=alert`); success auto-dismisses.
+- `SegmentedPills` also takes `labelFor`, `ariaLabel` and `size="sm"`.
+- `Modal` now moves focus into the dialog, traps Tab, and returns focus on close.
 
 ## Adding more from easyui.site
 EasyUI is copy-paste (React + Tailwind + framer-motion). Everything above already uses the same stack, so any EasyUI component drops in. Best next candidates for this app:
@@ -29,3 +33,8 @@ EasyUI is copy-paste (React + Tailwind + framer-motion). Everything above alread
 - **Sheet** — replace "More" sheet or edit forms with a draggable drawer
 
 Install one with the shadcn CLI command shown on its page, then restyle with the app tokens (`bg-ivory`, `text-maroon-800`, `bg-marigold-500`…) — EasyUI's defaults are monochrome.
+
+## Laptop features (Orders table + Sales)
+- `src/components/PageShell.tsx` widens the page on `/orders` and `/sales` only (laptop+), animating the width.
+- `lib/order-table.ts`, `lib/sales.ts`, `lib/bulk-orders.ts`, `lib/date-ranges.ts` hold the logic as plain functions with tests (`npm test`).
+- Bars in `SalesTrendChart` animate their SVG *attributes* via `animate()` — framer's own `x`/`y` mean "transform", not the attribute.

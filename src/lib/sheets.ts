@@ -292,6 +292,65 @@ export async function updateRow<T extends Record<string, any>>(
 }
 
 /**
+ * Patch SEVERAL rows of one tab with a single read and a single write.
+ * Calling updateRow() in a loop would re-read the whole sheet once per row
+ * (and fire one write per row), which trips Google's per-minute quota as soon
+ * as someone bulk-updates a few dozen orders. Here it is always 1 read + 1
+ * batchUpdate, whatever the number of rows.
+ *
+ * Ids that can't be found are returned in `missing` (nothing is written for
+ * them) instead of failing the whole batch.
+ */
+export async function updateRowsBatch<T extends Record<string, any>>(
+  tab: SheetTab,
+  updates: { id: string; patch: Partial<T> }[]
+): Promise<{ updated: string[]; missing: string[] }> {
+  const updated: string[] = [];
+  const missing: string[] = [];
+  if (updates.length === 0) return { updated, missing };
+
+  const client = getClient();
+  const columns = SHEET_COLUMNS[tab];
+  const idColumn = ID_COLUMN[tab];
+
+  const rawRows = await readSheetRaw(tab);
+  const rowIndexById = new Map<string, number>();
+  rawRows.forEach((row, i) => {
+    const record = rowToObject<any>(row, columns);
+    rowIndexById.set(String(record[idColumn]), i);
+  });
+
+  const data: { range: string; values: string[][] }[] = [];
+  for (const { id, patch } of updates) {
+    const rowIndex = rowIndexById.get(id);
+    if (rowIndex === undefined) {
+      missing.push(id);
+      continue;
+    }
+    const existing = rowToObject<any>(rawRows[rowIndex], columns);
+    const definedPatch = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+    const merged = { ...existing, ...definedPatch };
+    data.push({
+      range: `${SHEET_TABS[tab]}!A${rowIndex + 2}:${colLetter(columns.length)}${rowIndex + 2}`,
+      values: [columns.map((col) => stringifyCell(merged[col]))],
+    });
+    updated.push(id);
+  }
+
+  if (data.length > 0) {
+    await withErrorHandling(
+      () =>
+        client.spreadsheets.values.batchUpdate({
+          spreadsheetId: getSheetId(),
+          requestBody: { valueInputOption: "RAW", data },
+        }),
+      `Failed to update ${tab} rows`
+    );
+  }
+  return { updated, missing };
+}
+
+/**
  * Permanently delete the row identified by its ID from a tab. Used sparingly
  * — most of the app prefers soft-deletes (status = Cancelled) per the
  * original design, but the business owner asked for a real delete option

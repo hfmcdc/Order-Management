@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
-    "test": "tsx --test src/lib/whatsapp/*.test.ts"
+    "test": "tsx --test src/lib/*.test.ts src/lib/whatsapp/*.test.ts"
   },
   "dependencies": {
     "next": "14.2.5",

@@ -16,10 +16,13 @@ export default function SummaryCard({
   label,
   value,
   accent = false,
+  hint,
 }: {
   label: string;
   value: string | number;
   accent?: boolean;
+  /** Optional small line under the number (e.g. "Avg ₹350 per order"). */
+  hint?: string;
 }) {
   const parts = splitNumeric(value);
   return (
@@ -43,6 +46,9 @@ export default function SummaryCard({
           value
         )}
       </span>
+      {hint && (
+        <span className={accent ? "text-cream/70 text-xs" : "text-maroon-700/60 text-xs"}>{hint}</span>
+      )}
     </motion.div>
   );
 }

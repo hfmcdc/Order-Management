@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const ALL_LINKS = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
   { href: "/orders", label: "Orders", icon: OrdersIcon },
+  { href: "/sales", label: "Sales", icon: SalesIcon },
   { href: "/customers", label: "Customers", icon: CustomersIcon },
   { href: "/production", label: "Production", icon: ProductionIcon },
   { href: "/products", label: "Products", icon: ProductsIcon },
@@ -246,6 +247,15 @@ function OrdersIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <rect x="4" y="4" width="16" height="17" rx="2" />
       <path d="M8 9h8M8 13h8M8 17h5" strokeLinecap="round" />
+    </svg>
+  );
+}
+function SalesIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 20V4" strokeLinecap="round" />
+      <path d="M4 20h16" strokeLinecap="round" />
+      <path d="m8 15 3.5-4 3 2.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

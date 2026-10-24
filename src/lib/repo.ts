@@ -6,7 +6,17 @@
 // return JSON.
 // ---------------------------------------------------------------------------
 
-import { appendRow, appendRows, deleteRow, deleteRowsWhere, readSheet, replaceOrderItems, updateRow } from "./sheets";
+import {
+  appendRow,
+  appendRows,
+  deleteRow,
+  deleteRowsWhere,
+  readSheet,
+  replaceOrderItems,
+  updateRow,
+  updateRowsBatch,
+} from "./sheets";
+import type { BulkOrderPatch } from "./bulk-orders";
 import {
   Box,
   BoxContent,
@@ -381,6 +391,23 @@ export async function updateOrderDetails(
       }))
     );
   }
+}
+
+/**
+ * Apply the same status and/or payment change to many orders in ONE sheet
+ * write (see updateRowsBatch). Mirrors what the single-order screen does:
+ * status and payment_status are set independently, and payment_method is
+ * stored alongside "Paid".
+ */
+export async function bulkUpdateOrders(
+  ids: string[],
+  patch: BulkOrderPatch
+): Promise<{ updated: string[]; missing: string[] }> {
+  const timestamp = nowIso();
+  return updateRowsBatch<Order>(
+    "Orders",
+    ids.map((id) => ({ id, patch: { ...patch, updated_at: timestamp } }))
+  );
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {
