@@ -93,6 +93,21 @@ const ID_PREFIX: Record<SheetTab, string> = {
 
 let cachedClient: sheets_v4.Sheets | null = null;
 
+// ---------------------------------------------------------------------------
+// Read cache. Every Google Sheets read is a ~300-1000ms network round trip,
+// and most screens trigger several. We keep each tab's rows in memory for a
+// few seconds, share in-flight requests (so 5 parallel calls = 1 request),
+// and drop the tab's cache the moment this server writes to it.
+// ---------------------------------------------------------------------------
+const CACHE_TTL_MS = 15_000;
+const rowCache = new Map<SheetTab, { at: number; rows: string[][] }>();
+const inflight = new Map<SheetTab, Promise<string[][]>>();
+
+function invalidate(tab: SheetTab) {
+  rowCache.delete(tab);
+  inflight.delete(tab);
+}
+
 function assertEnv() {
   const missing = ["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_PRIVATE_KEY", "GOOGLE_SHEET_ID"].filter(
     (key) => !process.env[key]
@@ -153,19 +168,29 @@ async function withErrorHandling<T>(action: () => Promise<T>, context: string): 
 
 /** Read every row of a tab and return it as an array of typed objects. */
 export async function readSheet<T extends Record<string, any>>(tab: SheetTab): Promise<T[]> {
-  const client = getClient();
   const columns = SHEET_COLUMNS[tab];
-  const range = `${SHEET_TABS[tab]}!A2:${colLetter(columns.length)}`;
-
-  const res = await withErrorHandling(
-    () => client.spreadsheets.values.get({ spreadsheetId: getSheetId(), range }),
-    `Failed to read ${tab}`
-  );
-
-  const rows = res.data.values ?? [];
+  const rows = await readSheetCached(tab);
   return rows
     .filter((row) => row.some((cell) => cell !== undefined && cell !== ""))
     .map((row) => rowToObject<T>(row, columns));
+}
+
+async function readSheetCached(tab: SheetTab): Promise<string[][]> {
+  const hit = rowCache.get(tab);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.rows;
+  const pending = inflight.get(tab);
+  if (pending) return pending;
+
+  const p = readSheetRaw(tab)
+    .then((rows) => {
+      if (inflight.get(tab) === p) rowCache.set(tab, { at: Date.now(), rows });
+      return rows;
+    })
+    .finally(() => {
+      if (inflight.get(tab) === p) inflight.delete(tab);
+    });
+  inflight.set(tab, p);
+  return p;
 }
 
 /** Append a single new row, generating a safe sequential ID first. */
@@ -195,6 +220,7 @@ export async function appendRow<T extends Record<string, any>>(
       }),
     `Failed to add row to ${tab}`
   );
+  invalidate(tab);
 
   return record as T;
 }
@@ -236,6 +262,7 @@ export async function appendRows<T extends Record<string, any>>(
       }),
     `Failed to add rows to ${tab}`
   );
+  invalidate(tab);
 
   return records as T[];
 }
@@ -289,6 +316,7 @@ export async function updateRow<T extends Record<string, any>>(
       }),
     `Failed to update ${tab} row ${id}`
   );
+  invalidate(tab);
 }
 
 /**
@@ -346,6 +374,7 @@ export async function updateRowsBatch<T extends Record<string, any>>(
         }),
       `Failed to update ${tab} rows`
     );
+    invalidate(tab);
   }
   return { updated, missing };
 }
@@ -390,6 +419,7 @@ export async function deleteRow(tab: SheetTab, id: string): Promise<void> {
       }),
     `Failed to delete ${tab} row ${id}`
   );
+  invalidate(tab);
 }
 
 /** Delete every row in a tab matching a predicate — used to clean up an
@@ -431,6 +461,7 @@ export async function deleteRowsWhere(
       }),
     `Failed to delete rows from ${tab}`
   );
+  invalidate(tab);
 }
 
 /**
@@ -478,6 +509,7 @@ export async function replaceOrderItems<T extends Record<string, any>>(
         }),
       "Failed to remove old order items"
     );
+    invalidate("OrderItems");
   }
 
   return appendRows<T>(tab, newItems);
@@ -501,7 +533,8 @@ async function nextIdNumber(tab: SheetTab): Promise<number> {
   const prefix = ID_PREFIX[tab];
   if (!idColumn) return 1;
 
-  const rows = await readSheet<any>(tab);
+  const columns = SHEET_COLUMNS[tab];
+  const rows = (await readSheetRaw(tab)).map((r) => rowToObject<any>(r, columns));
   let max = 0;
   for (const row of rows) {
     const value = String(row[idColumn] ?? "");
