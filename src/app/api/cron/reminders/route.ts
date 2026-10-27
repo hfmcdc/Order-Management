@@ -42,25 +42,36 @@ export async function GET(req: NextRequest) {
     if (r.count === 0 && !force) return NextResponse.json({ sent: false, reason: "Nothing pending" });
 
     const lines: string[] = [];
-    if (r.overdue.length) lines.push(`Overdue (${r.overdue.length}): ${names(r.overdue)}`);
-    if (r.dueToday.length) lines.push(`Due today (${r.dueToday.length}): ${names(r.dueToday)}`);
+    if (r.overdue.length) lines.push(`🔴 OVERDUE (${r.overdue.length}): ${names(r.overdue)}`);
+    if (r.dueToday.length) lines.push(`🟡 DUE TODAY (${r.dueToday.length}): ${names(r.dueToday)}`);
     if (r.unpaid.length)
-      lines.push(`Payment pending (${r.unpaid.length}): ₹${r.unpaidAmount} - ${names(r.unpaid)}`);
+      lines.push(`💰 PAYMENT PENDING (${r.unpaid.length}): ₹${r.unpaidAmount} - ${names(r.unpaid)}`);
     if (lines.length === 0) lines.push("Nothing pending. All clear!");
 
-    const headers: Record<string, string> = {
-      // HTTP headers must be plain ASCII, so no ₹ symbol here.
-      Title: `${r.count} order${r.count === 1 ? "" : "s"} need attention`,
-      Priority: r.overdue.length ? "high" : "default",
-      Tags: r.overdue.length ? "warning" : "bell",
-    };
-    // Tapping the notification opens your app.
-    if (process.env.APP_URL) headers.Click = process.env.APP_URL;
+    // Sent as JSON (not HTTP headers) so emojis and the ₹ symbol work.
+    const brand = (process.env.APP_NAME || "VAIGA SWEETS & SNACKS").toUpperCase();
+    const urgent = r.overdue.length > 0;
+    // Use APP_URL if set; otherwise fall back to the address Vercel gives us.
+    const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    const appUrl = (process.env.APP_URL || (vercelHost ? `https://${vercelHost}` : "")).replace(/\/$/, "");
 
-    const res = await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}`, {
+    const payload: Record<string, unknown> = {
+      topic,
+      title: `${urgent ? "🚨" : "🔔"} ${brand} 🍬 ${r.count} ORDER${r.count === 1 ? "" : "S"} PENDING`,
+      message: lines.join("\n"),
+      // 5 = urgent: strongest sound and vibration, pops over other notifications.
+      priority: urgent ? 5 : 4,
+      tags: urgent ? ["rotating_light", "candy"] : ["bell", "candy"],
+    };
+    if (appUrl) {
+      payload.click = appUrl; // tapping opens your app
+      payload.icon = `${appUrl}/icon-192.png`; // your logo (small file loads faster) beside the notification
+    }
+
+    const res = await fetch("https://ntfy.sh", {
       method: "POST",
-      headers,
-      body: lines.join("\n"),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       return NextResponse.json({ error: `ntfy responded ${res.status}` }, { status: 502 });
