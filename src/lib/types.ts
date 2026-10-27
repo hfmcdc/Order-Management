@@ -135,3 +135,13 @@ export interface CustomerTotals {
   totalItems: number; // includes items contained in boxes
   totalAmount: number;
 }
+
+// One row in the dashboard "Reminders" card (see /api/reminders)
+export interface ReminderOrder {
+  order_id: string;
+  customerName: string;
+  total: number;
+  fulfillment_date: string;
+  status: string;
+  payment_status: string;
+}

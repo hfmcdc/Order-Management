@@ -261,3 +261,19 @@ in the UI yet — for now, disable the old box and create a new one with correct
 contents. (The data layer already supports the underlying replace-rows pattern used
 for order items, in `replaceOrderItems` in `src/lib/sheets.ts`, so wiring up a
 "edit contents" button later is a small, contained change.)
+
+## Phone reminders
+
+Twice a day (9:00 am and 6:00 pm India time) the server sends a phone
+notification listing overdue, due-today and unpaid orders. It uses the free
+[ntfy](https://ntfy.sh) app. Nothing is sent when there is nothing pending.
+
+1. Install **ntfy** (Android: Play Store, iPhone: App Store).
+2. In the app tap **+**, enter your secret topic name (same as `NTFY_TOPIC`), Subscribe.
+3. In Vercel → Project → Settings → Environment Variables add `NTFY_TOPIC`,
+   `CRON_SECRET` and (optional) `APP_URL`, then redeploy.
+4. Test: open `https://YOUR-APP/api/cron/reminders?key=YOUR_CRON_SECRET&force=1`
+
+Vercel's free plan runs scheduled jobs once a day each and may fire anywhere
+within the scheduled hour. Edit the times in `vercel.json` (they are in UTC;
+India = UTC + 5:30).

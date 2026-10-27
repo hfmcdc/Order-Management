@@ -6,6 +6,7 @@ import { useState } from "react";
 import Image from "next/image";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
+import { useApi } from "@/lib/useApi";
 
 const ALL_LINKS = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
@@ -33,6 +34,9 @@ export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const [showMore, setShowMore] = useState(false);
+  // Number of orders needing attention (overdue / due today / unpaid)
+  const { data: reminders } = useApi<{ count: number }>("/api/reminders");
+  const badgeFor = (href: string) => (href === "/orders" ? reminders?.count ?? 0 : 0);
 
   return (
     <>
@@ -50,7 +54,7 @@ export default function Nav() {
           </div>
         </div>
         {ALL_LINKS.map((link) => (
-          <NavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
+          <NavLink key={link.href} link={link} active={isActive(pathname, link.href)} badge={badgeFor(link.href)} />
         ))}
         <motion.div whileTap={{ scale: 0.96 }} whileHover={{ y: -2 }} className="mt-4">
           <Link
@@ -65,7 +69,7 @@ export default function Nav() {
       {/* Mobile bottom nav — 3 spacious slots + a raised center action + More */}
       <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-30 bg-ivory/95 backdrop-blur-sm shadow-[0_-2px_16px_rgba(0,0,0,0.45)] flex items-stretch justify-around pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {PRIMARY_MOBILE_LINKS.slice(0, 2).map((link) => (
-          <MobileNavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
+          <MobileNavLink key={link.href} link={link} active={isActive(pathname, link.href)} badge={badgeFor(link.href)} />
         ))}
 
         {/* Raised center action, Instagram/TikTok-style — the single most
@@ -87,7 +91,7 @@ export default function Nav() {
         </div>
 
         {PRIMARY_MOBILE_LINKS.slice(2).map((link) => (
-          <MobileNavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
+          <MobileNavLink key={link.href} link={link} active={isActive(pathname, link.href)} badge={badgeFor(link.href)} />
         ))}
 
         <motion.button
@@ -167,7 +171,7 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-function NavLink({ link, active }: { link: (typeof ALL_LINKS)[number]; active: boolean }) {
+function NavLink({ link, active, badge = 0 }: { link: (typeof ALL_LINKS)[number]; active: boolean; badge?: number }) {
   return (
     <Link
       href={link.href}
@@ -190,11 +194,16 @@ function NavLink({ link, active }: { link: (typeof ALL_LINKS)[number]; active: b
       <span className="relative z-10 transition-transform duration-200 group-hover:translate-x-0.5">
         {link.label}
       </span>
+      {badge > 0 && (
+        <span className="relative z-10 ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-600 text-white text-[11px] font-semibold flex items-center justify-center">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </Link>
   );
 }
 
-function MobileNavLink({ link, active }: { link: (typeof ALL_LINKS)[number]; active: boolean }) {
+function MobileNavLink({ link, active, badge = 0 }: { link: (typeof ALL_LINKS)[number]; active: boolean; badge?: number }) {
   return (
     <Link
       href={link.href}
@@ -221,6 +230,11 @@ function MobileNavLink({ link, active }: { link: (typeof ALL_LINKS)[number]; act
         >
           <link.icon />
         </motion.span>
+        {badge > 0 && (
+          <span className="absolute -top-0.5 right-0 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-semibold flex items-center justify-center z-20">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
       </motion.span>
       <span
         className={clsx(
