@@ -8,7 +8,6 @@ import { useApi } from "@/lib/useApi";
 import SummaryCard from "@/components/SummaryCard";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { ProductionRow } from "@/lib/types";
-import Reminders from "@/components/Reminders";
 
 interface RecentOrder {
   order_id: string;
@@ -155,11 +154,6 @@ export default function DashboardPage() {
             >
               Sales
             </Link>
-          </StaggerItem>
-
-          {/* Overdue, due-today and unpaid orders */}
-          <StaggerItem>
-            <Reminders />
           </StaggerItem>
 
           {/* Payments received */}
