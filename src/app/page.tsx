@@ -48,7 +48,7 @@ interface DashboardResponse {
     unspecified: number;
     total: number;
     pendingAmount: number;
-    pendingOrders: { order_id: string; customerName: string; total: number; payment_status: string }[];
+    pendingOrders: { order_id: string; customerName: string; total: number; payment_status: string; fulfillment_date: string }[];
   };
   production: ProductionRow[];
   recentOrders: RecentOrder[];
