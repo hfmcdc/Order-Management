@@ -1,25 +1,45 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAllData } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 import { computeOrderWithDetails, computeProductionRows, isOrderActive } from "@/lib/calculations";
+import { todayIST } from "@/lib/reminders";
+import { isIsoDate } from "@/lib/date-ranges";
 
 // Always hit Google Sheets fresh — never let Vercel/Next.js cache this
 // route's response, or new orders/edits would appear to vanish.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+/**
+ * Daily dashboard. Everything is scoped to ONE day — the orders whose
+ * fulfillment_date is `?date=YYYY-MM-DD` (defaults to today, India time).
+ * Two things deliberately look beyond that day because they're money/work
+ * still hanging over from earlier: `carryOver` (orders from past days that
+ * were never delivered) and `payments.pendingOrders` (delivered but unpaid,
+ * from any day).
+ */
+export async function GET(req: NextRequest) {
   try {
     const { customers, products, boxes, boxContents, orders, orderItems } = await getAllData();
 
-    const activeOrders = orders.filter(isOrderActive);
-    const activeOrderIds = new Set(activeOrders.map((o) => o.order_id));
-    const activeItems = orderItems.filter((i) => activeOrderIds.has(i.order_id));
+    const requested = req.nextUrl.searchParams.get("date");
+    const date = isIsoDate(requested) ? requested : todayIST();
 
-    const totalBoxes = activeItems
+    const activeOrders = orders.filter(isOrderActive);
+    const dayOrders = activeOrders.filter((o) => o.fulfillment_date === date);
+    const dayOrderIds = new Set(dayOrders.map((o) => o.order_id));
+    const dayItems = orderItems.filter((i) => dayOrderIds.has(i.order_id));
+
+    const detailsFor = (order: (typeof orders)[number]) => {
+      const items = orderItems.filter((i) => i.order_id === order.order_id);
+      const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
+      return computeOrderWithDetails(order, items, customer, boxContents);
+    };
+
+    const totalBoxes = dayItems
       .filter((i) => i.item_type === "box")
       .reduce((sum, i) => sum + i.quantity, 0);
-    const totalIndividualItems = activeItems
+    const totalIndividualItems = dayItems
       .filter((i) => i.item_type === "product")
       .reduce((sum, i) => sum + i.quantity, 0);
 
@@ -28,95 +48,84 @@ export async function GET() {
       orderItems,
       boxContents,
       products,
+      fulfillmentDate: date,
     });
     const totalItemsFromBoxes = production.reduce((sum, r) => sum + r.fromBoxes, 0);
 
-    const totalOrderValue = activeOrders.reduce((sum, order) => {
-      const items = orderItems.filter((i) => i.order_id === order.order_id);
-      const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
-      return sum + computeOrderWithDetails(order, items, customer, boxContents).total;
-    }, 0);
+    const dayDetails = dayOrders.map(detailsFor);
+    const totalOrderValue = dayDetails.reduce((sum, d) => sum + d.total, 0);
+    const totalCustomers = new Set(dayOrders.map((o) => o.customer_id)).size;
 
-    // Payments actually received so far, split by method. Distinct from
-    // "Order value" above (which is the value of ALL active orders
-    // regardless of payment status) — this is money in hand. Orders marked
-    // Paid before this feature existed (or via the old Pending/Partial/Paid
-    // buttons, which don't ask for a method) have no payment_method — those
-    // are counted in the total but kept out of both Cash and UPI rather
-    // than being guessed into either one.
+    // Progress for the day: how many of the day's orders are already delivered.
+    const deliveredCount = dayOrders.filter((o) => o.status === "Delivered").length;
+
+    // Payments received for this day's orders, split by method. Orders marked
+    // Paid without a recorded method are counted in the total but kept out of
+    // both Cash and UPI rather than being guessed into either one.
     let cashReceived = 0;
     let upiReceived = 0;
     let unspecifiedReceived = 0;
-    for (const order of activeOrders) {
-      if (order.payment_status !== "Paid") continue;
-      const items = orderItems.filter((i) => i.order_id === order.order_id);
-      const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
-      const total = computeOrderWithDetails(order, items, customer, boxContents).total;
-      if (order.payment_method === "Cash") cashReceived += total;
-      else if (order.payment_method === "UPI") upiReceived += total;
-      else unspecifiedReceived += total;
+    for (const d of dayDetails) {
+      if (d.payment_status !== "Paid") continue;
+      if (d.payment_method === "Cash") cashReceived += d.total;
+      else if (d.payment_method === "UPI") upiReceived += d.total;
+      else unspecifiedReceived += d.total;
     }
     const totalReceived = cashReceived + upiReceived + unspecifiedReceived;
 
-    // Money owed: delivered orders that still aren't marked Paid. This is
-    // the "we gave them the sweets but haven't collected yet" list — worth
-    // surfacing separately from ordinary Pending orders that haven't been
-    // delivered yet, since those aren't overdue in the same way.
+    // Money owed from ANY day: delivered but still not Paid.
     const unpaidAfterDelivery = activeOrders
       .filter((o) => o.status === "Delivered" && o.payment_status !== "Paid")
       .map((order) => {
-        const items = orderItems.filter((i) => i.order_id === order.order_id);
-        const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
-        const total = computeOrderWithDetails(order, items, customer, boxContents).total;
+        const d = detailsFor(order);
         return {
           order_id: order.order_id,
-          customerName: customer?.name ?? "Unknown customer",
-          total,
+          customerName: d.customer?.name ?? "Unknown customer",
+          total: d.total,
           payment_status: order.payment_status,
+          fulfillment_date: order.fulfillment_date,
         };
       })
       .sort((a, b) => b.total - a.total);
-
     const pendingAmount = unpaidAfterDelivery.reduce((sum, o) => sum + o.total, 0);
 
-    // "Total items" everywhere in this app means the same thing: individual
-    // units ordered, PLUS the units contained inside any boxes — i.e. the
-    // actual count of sweets/snacks, not a count of order lines. Boxes are
-    // reported as their own separate number rather than folded into this,
-    // so "1 box + 2 individual items" isn't ambiguously called "3 items"
-    // in one place and "4 items" (with box contents expanded) in another.
-    const recentOrders = [...activeOrders]
-      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-      .slice(0, 5)
+    // Earlier-day orders that never got delivered — they'd otherwise vanish
+    // from a strictly day-by-day view.
+    const today = todayIST();
+    const carryOver = activeOrders
+      .filter((o) => o.status !== "Delivered" && o.fulfillment_date && o.fulfillment_date < date)
+      .sort((a, b) => (a.fulfillment_date < b.fulfillment_date ? -1 : 1))
       .map((order) => {
-        const items = orderItems.filter((i) => i.order_id === order.order_id);
-        const customer = customers.find((c) => c.customer_id === order.customer_id) ?? null;
-        const details = computeOrderWithDetails(order, items, customer, boxContents);
+        const d = detailsFor(order);
         return {
           order_id: order.order_id,
-          customerName: customer?.name ?? "Unknown customer",
-          boxCount: details.totalBoxes,
-          itemCount: details.totalItems,
-          total: details.total,
-          created_at: order.created_at,
+          customerName: d.customer?.name ?? "Unknown customer",
+          total: d.total,
+          fulfillment_date: order.fulfillment_date,
+          status: order.status,
         };
       });
 
-    const topProducts = production.slice(0, 5);
-
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const todaysProduction = computeProductionRows({
-      orders,
-      orderItems,
-      boxContents,
-      products,
-      fulfillmentDate: todayIso,
-    }).slice(0, 5);
+    const recentOrders = [...dayDetails]
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .slice(0, 5)
+      .map((d) => ({
+        order_id: d.order_id,
+        customerName: d.customer?.name ?? "Unknown customer",
+        boxCount: d.totalBoxes,
+        itemCount: d.totalItems,
+        total: d.total,
+        status: d.status,
+        created_at: d.created_at,
+      }));
 
     return NextResponse.json({
+      date,
+      isToday: date === today,
       summary: {
-        totalOrders: activeOrders.length,
-        totalCustomers: customers.length,
+        totalOrders: dayOrders.length,
+        deliveredOrders: deliveredCount,
+        totalCustomers,
         totalBoxes,
         totalIndividualItems,
         totalItems: totalIndividualItems + totalItemsFromBoxes,
@@ -130,10 +139,10 @@ export async function GET() {
         pendingAmount,
         pendingOrders: unpaidAfterDelivery,
       },
+      carryOver,
       production,
       recentOrders,
-      topProducts,
-      todaysProduction,
+      topProducts: production.slice(0, 5),
     });
   } catch (err) {
     return handleApiError(err);

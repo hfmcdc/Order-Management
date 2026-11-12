@@ -1,9 +1,24 @@
 # Vaiga Order Manager
 
 An internal order-management app for **Vaiga Sweets & Snacks**, built to replace the
-paper order book during Diwali season. It is used by staff (primarily on a phone) to
+paper order book and now runs the shop **day by day**. It is used by staff (primarily on a phone) to
 record orders that come in by WhatsApp, phone, or in person — it is **not** a
 customer-facing storefront.
+
+## How the daily flow works
+
+Every order has a **needed-on date** (`fulfillment_date`, default today; set on the
+New Order screen). The app is organised around that day:
+
+- **Dashboard** – orders, customers, boxes, items to make, order value and payments
+  for one day (use ‹ › or the date picker). Undelivered orders from earlier days show
+  under *Carried over*; delivered-but-unpaid orders from any day show under *Pending payment*.
+- **Production** – opens on today's make-list and packing checklist; step through days,
+  or tap *Show all days*. The dashboard's production link opens the day you were viewing.
+- **Orders** – lists the selected day's orders; *Show all days* gives the full list.
+- **Reminders / cron** – unchanged: overdue, due today, and unpaid.
+
+No sheet changes are needed — existing columns already carry the date.
 
 The app automatically works out, for every order:
 - how many boxes and individual items were ordered,
@@ -51,7 +66,7 @@ Open http://localhost:3000.
 
 ### 2a. Create the spreadsheet
 
-1. Create a new Google Sheet (e.g. "Vaiga Diwali 2026 Orders").
+1. Create a new Google Sheet (e.g. "Vaiga Daily Orders").
 2. Create six tabs, named **exactly** as below, with these header rows in row 1:
 
    | Tab | Columns (row 1) |

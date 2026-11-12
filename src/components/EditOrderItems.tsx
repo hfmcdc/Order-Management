@@ -149,7 +149,7 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
       </p>
 
       <section className="flex flex-col gap-2">
-        <h3 className="font-display font-600 text-base text-maroon-800">Diwali boxes</h3>
+        <h3 className="font-display font-600 text-base text-maroon-800">Boxes</h3>
         {boxesLoading && <LoadingState label="Loading boxes…" />}
         {boxesError && <ErrorState message={boxesError} />}
         <div className="flex flex-col gap-2">

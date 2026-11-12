@@ -18,7 +18,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "Vaiga Order Manager",
-  description: "Diwali 2026 order manager for Vaiga Sweets & Snacks",
+  description: "Daily order manager for Vaiga Sweets & Snacks",
   manifest: "/manifest.json",
   icons: {
     icon: [

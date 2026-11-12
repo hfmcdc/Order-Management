@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import AnimatedNumber from "@/components/motion/AnimatedNumber";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
@@ -8,6 +8,8 @@ import { useApi } from "@/lib/useApi";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { ProductionRow } from "@/lib/types";
 import { BUSINESS_NAME } from "@/lib/business-info";
+import DayPicker from "@/components/DayPicker";
+import { formatShort, isIsoDate, toLocalIso } from "@/lib/date-ranges";
 
 interface ProductionResponse {
   rows: ProductionRow[];
@@ -16,9 +18,16 @@ interface ProductionResponse {
 }
 
 export default function ProductionPage() {
-  const [date, setDate] = useState<string>("");
+  // Production is planned one day at a time. Defaults to today (or the day
+  // passed in ?date=, e.g. from the dashboard link); "All days" is opt-in.
+  const [date, setDate] = useState<string>(() => toLocalIso(new Date()));
+  const [allDays, setAllDays] = useState(false);
   const [query, setQuery] = useState("");
-  const url = date ? `/api/production?date=${date}` : "/api/production";
+  useEffect(() => {
+    const d = new URLSearchParams(window.location.search).get("date");
+    if (isIsoDate(d)) setDate(d);
+  }, []);
+  const url = allDays ? "/api/production" : `/api/production?date=${date}`;
   const { data, loading, error, refresh } = useApi<ProductionResponse>(url);
 
   const sweets = data?.rows.filter((r) => r.category === "Sweets") ?? [];
@@ -34,14 +43,14 @@ export default function ProductionPage() {
     <div className="flex flex-col gap-5 pb-8">
       <div className="hidden print:block mb-2">
         <h1 className="font-display font-700 text-xl text-maroon-900">{BUSINESS_NAME.toUpperCase()}</h1>
-        <p className="text-sm text-maroon-800">Production list — {date || "all upcoming"}</p>
+        <p className="text-sm text-maroon-800">Production list — {allDays ? "all days" : formatShort(date, true)}</p>
       </div>
 
       <header className="no-print flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display font-700 text-2xl text-maroon-800">Production</h1>
           <p className="text-maroon-700/70 text-sm mt-0.5">
-            What needs to be made, based on active orders.
+            What needs to be made {allDays ? "across all days" : "for the day"}, based on active orders.
           </p>
         </div>
         <button
@@ -96,26 +105,21 @@ export default function ProductionPage() {
         )}
       </div>
 
-      <div className="no-print flex items-center gap-3">
-        <label className="text-sm text-maroon-700/70">Fulfillment date</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="touch-target rounded-2xl bg-ivory px-4 shadow-sm"
-        />
-        {date && (
-          <button onClick={() => setDate("")} className="text-sm text-marigold-600 font-medium">
-            Clear (show all)
-          </button>
-        )}
+      <div className="no-print flex flex-wrap items-center gap-3">
+        {!allDays && <DayPicker value={date} onChange={setDate} />}
+        <button
+          onClick={() => setAllDays((v) => !v)}
+          className="press text-sm text-marigold-600 font-medium"
+        >
+          {allDays ? "← Back to a single day" : "Show all days"}
+        </button>
       </div>
 
       {loading && <LoadingState label="Calculating production…" />}
       {error && <ErrorState message={error} onRetry={refresh} />}
 
       {data && data.rows.length === 0 && data.boxTotals.length === 0 && (
-        <EmptyState title="Nothing to produce" hint="No active orders for this date yet." />
+        <EmptyState title="Nothing to produce" hint={allDays ? "No active orders yet." : "No active orders for this day yet."} />
       )}
 
       {data && (

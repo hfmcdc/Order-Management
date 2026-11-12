@@ -24,6 +24,7 @@ import {
 } from "@/lib/order-table";
 import { addDaysIso, formatShort, mondayOf, toLocalIso } from "@/lib/date-ranges";
 import { downloadCsv } from "@/lib/download";
+import DayPicker from "@/components/DayPicker";
 
 export default function OrdersPage() {
   const { data, loading, error, refresh } = useApi<{ orders: OrderWithDetails[] }>("/api/orders");
@@ -37,6 +38,10 @@ export default function OrdersPage() {
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [exporting, setExporting] = useState(false);
   const [todayIso, setTodayIso] = useState("");
+  // Orders are viewed one "needed on" day at a time (default: today); the
+  // "All days" switch brings back the full list.
+  const [day, setDay] = useState<string>(() => toLocalIso(new Date()));
+  const [allDays, setAllDays] = useState(false);
   useEffect(() => setTodayIso(toLocalIso(new Date())), []);
 
   const patchFilters = (patch: Partial<OrderFilters>) => setFilters((f) => ({ ...f, ...patch }));
@@ -47,7 +52,11 @@ export default function OrdersPage() {
     [isDesktop, filters]
   );
 
-  const filtered = useMemo(() => (data ? filterOrders(data.orders, effective) : []), [data, effective]);
+  const dayOrders = useMemo(
+    () => (data ? (allDays ? data.orders : data.orders.filter((o) => String(o.fulfillment_date ?? "").slice(0, 10) === day)) : []),
+    [data, allDays, day]
+  );
+  const filtered = useMemo(() => filterOrders(dayOrders, effective), [dayOrders, effective]);
   const rows = useMemo(() => (isDesktop ? sortOrders(filtered, sort) : filtered), [filtered, sort, isDesktop]);
 
   // Selection can only ever contain orders that are visible right now, so a
@@ -140,7 +149,7 @@ export default function OrdersPage() {
       <header className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display font-700 text-2xl text-maroon-800">Orders</h1>
-          <p className="text-maroon-700/70 text-sm mt-1">Every order, searchable and filterable.</p>
+          <p className="text-maroon-700/70 text-sm mt-1">{allDays ? "Every order, across all days." : "Orders needed on the selected day."}</p>
         </div>
         <div className="flex items-center gap-3">
           <motion.button
@@ -163,6 +172,13 @@ export default function OrdersPage() {
       </header>
 
       <Notice notice={notice} onDismiss={() => setNotice(null)} />
+
+      <div className="flex flex-wrap items-center gap-3">
+        {!allDays && <DayPicker value={day} onChange={setDay} />}
+        <button type="button" onClick={() => setAllDays((v) => !v)} className="press text-sm text-marigold-600 font-medium">
+          {allDays ? "← Back to a single day" : "Show all days"}
+        </button>
+      </div>
 
       {/* ---- Phone / tablet filters (unchanged) ---- */}
       <div className="flex flex-col md:flex-row gap-3 lg:hidden">
@@ -302,7 +318,7 @@ export default function OrdersPage() {
       {error && <ErrorState message={error} onRetry={refresh} />}
 
       {data && rows.length === 0 && (
-        <EmptyState title="No orders found" hint="Try a different search or filter." />
+        <EmptyState title="No orders found" hint={allDays ? "Try a different search or filter." : "Nothing is booked for this day — try another day or “Show all days”."} />
       )}
 
       {/* ---- Laptop: summary strip + sortable, selectable table ---- */}
@@ -311,7 +327,7 @@ export default function OrdersPage() {
           <div className="hidden lg:flex flex-wrap items-center gap-x-8 gap-y-2 px-1 text-sm text-maroon-700/70">
             <p aria-live="polite">
               Showing <strong className="text-maroon-800">{rows.length}</strong> of{" "}
-              <strong className="text-maroon-800">{data.orders.length}</strong> orders
+              <strong className="text-maroon-800">{dayOrders.length}</strong> {allDays ? "orders" : "orders this day"}
             </p>
             <p>
               Order value{" "}

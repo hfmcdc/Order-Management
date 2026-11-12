@@ -12,6 +12,8 @@ import { motion } from "framer-motion";
 import AnimatedCheck from "@/components/motion/AnimatedCheck";
 import ConfettiBurst from "@/components/motion/ConfettiBurst";
 import AnimatedNumber from "@/components/motion/AnimatedNumber";
+import DayPicker from "@/components/DayPicker";
+import { toLocalIso } from "@/lib/date-ranges";
 
 // Item keys: "productId" for a plain product, or "productId::unitLabel" for
 // a specific unit of a multi-unit product (e.g. Halwa "250g").
@@ -55,6 +57,10 @@ export default function NewOrderPage() {
   const [boxQuantities, setBoxQuantities] = useState<Record<string, number>>({});
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState("");
+  // Daily operation: an order is for a specific day. Defaults to today; staff
+  // can move it to tomorrow (or any later day) for advance bookings.
+  const [fulfillmentDate, setFulfillmentDate] = useState<string>(() => toLocalIso(new Date()));
+  const [fulfillmentType, setFulfillmentType] = useState<"Pickup" | "Delivery">("Pickup");
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -191,6 +197,9 @@ export default function NewOrderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: customer.customer_id,
+          order_date: toLocalIso(new Date()),
+          fulfillment_date: fulfillmentDate,
+          fulfillment_type: fulfillmentType,
           notes,
           items,
         }),
@@ -390,7 +399,7 @@ export default function NewOrderPage() {
 
       {/* Step 2: Boxes */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-display font-600 text-lg text-maroon-800">2. Diwali boxes</h2>
+        <h2 className="font-display font-600 text-lg text-maroon-800">2. Boxes</h2>
         {boxesLoading && <LoadingState label="Loading boxes…" />}
         {boxesError && <ErrorState message={boxesError} />}
         <div className="flex flex-col gap-2">
@@ -473,9 +482,30 @@ export default function NewOrderPage() {
         </div>
       </section>
 
+      {/* Day + pickup/delivery */}
+      <section className="flex flex-col gap-3">
+        <h2 className="font-display font-600 text-lg text-maroon-800">4. Needed on</h2>
+        <DayPicker value={fulfillmentDate} onChange={setFulfillmentDate} />
+        <div className="flex gap-2">
+          {(["Pickup", "Delivery"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setFulfillmentType(t)}
+              className={clsx(
+                "press touch-target rounded-full px-5 font-medium shadow-sm",
+                fulfillmentType === t ? "bg-marigold-500 text-ink" : "bg-ivory text-maroon-800"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Notes */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-display font-600 text-lg text-maroon-800">4. Notes</h2>
+        <h2 className="font-display font-600 text-lg text-maroon-800">5. Notes</h2>
         <textarea
           placeholder="Notes (optional)"
           value={notes}

@@ -149,7 +149,7 @@ function BoxEditor({
         </label>
         <input
           id="box-name"
-          placeholder="e.g. Premium Diwali Box"
+          placeholder="e.g. Premium Gift Box"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           className="touch-target rounded-card border border-clay-300 px-4"
@@ -298,7 +298,7 @@ export default function BoxesPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="font-display font-700 text-2xl text-maroon-800">Boxes</h1>
-          <p className="text-maroon-700/70 text-sm mt-0.5">Define what goes inside each Diwali box.</p>
+          <p className="text-maroon-700/70 text-sm mt-0.5">Define what goes inside each box.</p>
         </div>
         <button
           onClick={() => {

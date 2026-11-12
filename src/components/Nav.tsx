@@ -46,7 +46,7 @@ export default function Nav() {
             <p className="font-display font-700 text-lg text-maroon-800 leading-tight">
               Vaiga
             </p>
-            <p className="text-[11px] text-maroon-700/70 leading-tight">Diwali 2026</p>
+            <p className="text-[11px] text-maroon-700/70 leading-tight">Daily orders</p>
           </div>
         </div>
         {ALL_LINKS.map((link) => (

@@ -106,7 +106,7 @@ export default function SplashScreen() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.65, duration: 0.5 }}
           >
-            Diwali 2026 Order Management
+            Daily Order Management
           </motion.p>
 
           {/* thin gold progress line */}
