@@ -1,9 +1,24 @@
 # Vaiga Order Manager
 
 An internal order-management app for **Vaiga Sweets & Snacks**, built to replace the
-paper order book during Diwali season. It is used by staff (primarily on a phone) to
+paper order book and now runs the shop **day by day**. It is used by staff (primarily on a phone) to
 record orders that come in by WhatsApp, phone, or in person — it is **not** a
 customer-facing storefront.
+
+## How the daily flow works
+
+Every order has a **needed-on date** (`fulfillment_date`, default today; set on the
+New Order screen). The app is organised around that day:
+
+- **Dashboard** – orders, customers, boxes, items to make, order value and payments
+  for one day (use ‹ › or the date picker). Undelivered orders from earlier days show
+  under *Carried over*; delivered-but-unpaid orders from any day show under *Pending payment*.
+- **Production** – opens on today's make-list and packing checklist; step through days,
+  or tap *Show all days*. The dashboard's production link opens the day you were viewing.
+- **Orders** – lists the selected day's orders; *Show all days* gives the full list.
+- **Reminders / cron** – unchanged: overdue, due today, and unpaid.
+
+No sheet changes are needed — existing columns already carry the date.
 
 The app automatically works out, for every order:
 - how many boxes and individual items were ordered,
@@ -51,7 +66,7 @@ Open http://localhost:3000.
 
 ### 2a. Create the spreadsheet
 
-1. Create a new Google Sheet (e.g. "Vaiga Diwali 2026 Orders").
+1. Create a new Google Sheet (e.g. "Vaiga Daily Orders").
 2. Create six tabs, named **exactly** as below, with these header rows in row 1:
 
    | Tab | Columns (row 1) |
@@ -261,3 +276,26 @@ in the UI yet — for now, disable the old box and create a new one with correct
 contents. (The data layer already supports the underlying replace-rows pattern used
 for order items, in `replaceOrderItems` in `src/lib/sheets.ts`, so wiring up a
 "edit contents" button later is a small, contained change.)
+
+## Phone reminders
+
+Twice a day (9:00 am and 6:00 pm India time) the server sends a phone
+notification listing overdue, due-today and unpaid orders. It uses the free
+[ntfy](https://ntfy.sh) app. Nothing is sent when there is nothing pending.
+
+1. Install **ntfy** (Android: Play Store, iPhone: App Store).
+2. In the app tap **+**, enter your secret topic name (same as `NTFY_TOPIC`), Subscribe.
+3. In Vercel → Project → Settings → Environment Variables add `NTFY_TOPIC`,
+   `CRON_SECRET` and (optional) `APP_URL`, then redeploy.
+4. Test: open `https://YOUR-APP/api/cron/reminders?key=YOUR_CRON_SECRET&force=1`
+
+Vercel's free plan runs scheduled jobs once a day each and may fire anywhere
+within the scheduled hour. Edit the times in `vercel.json` (they are in UTC;
+India = UTC + 5:30).
+
+
+## Theme, logo and the Deepavali 2026 section
+
+- **Theme:** deep blue & white. Colours live in `tailwind.config.ts` (token names kept, so the whole app restyles from there) and `src/app/globals.css`.
+- **Logo / app icon:** the Vaiga oval logo is already set in `public/` (`logo.png`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon.ico`, `invoice-logo.png`, `invoice-watermark.png`). Replace those files to change it. After deploying, remove and re-add the app to the home screen to refresh the installed icon.
+- **Deepavali 2026:** `/deepavali` is a read-only season report (received, cash, UPI, pending, day by day). Orders placed on or before `DEEPAVALI_CUTOFF` in `src/lib/season.ts` (currently 2026-11-13) belong to it; later orders are normal daily orders.

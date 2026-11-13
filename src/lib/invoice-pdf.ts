@@ -44,6 +44,20 @@ async function registerPlayfair(doc: any): Promise<boolean> {
   }
 }
 
+/** Fetches an image from /public and returns it as a data URL (or null on failure). */
+async function loadImage(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return `data:image/png;base64,${bufferToBase64(await res.arrayBuffer())}`;
+  } catch {
+    return null;
+  }
+}
+
+// Logo artwork is 832x490 (see public/invoice-logo.png)
+const LOGO_RATIO = 832 / 490;
+
 /**
  * Builds a one-page invoice PDF entirely in the browser (no server round
  * trip, no external service) and returns it as a File, ready to hand to
@@ -65,24 +79,48 @@ export async function buildInvoicePdf(order: InvoiceOrder): Promise<File> {
   const marginX = 48;
   let y = 56;
 
+  const [logo, watermark] = await Promise.all([
+    loadImage("/invoice-logo.png"),
+    loadImage("/invoice-watermark.png"),
+  ]);
+
+  // Black-and-white watermark, centred on the page and drawn first so it sits
+  // behind everything else. Very low opacity keeps the text readable.
+  if (watermark) {
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const wmW = 380;
+    const wmH = wmW / LOGO_RATIO;
+    doc.saveGraphicsState();
+    doc.setGState(new (doc as any).GState({ opacity: 0.08 }));
+    doc.addImage(watermark, "PNG", (pageW - wmW) / 2, (pageH - wmH) / 2, wmW, wmH);
+    doc.restoreGraphicsState();
+  }
+
+  // Small logo beside the business name
+  const logoH = 52;
+  const logoW = logoH * LOGO_RATIO;
+  const textX = logo ? marginX + logoW + 14 : marginX;
+  if (logo) doc.addImage(logo, "PNG", marginX, 38, logoW, logoH);
+
   serif("bold");
   doc.setFontSize(18);
-  doc.setTextColor("#4A1526");
-  doc.text(BUSINESS_NAME.toUpperCase(), marginX, y);
+  doc.setTextColor("#0B1B4D");
+  doc.text(BUSINESS_NAME.toUpperCase(), textX, y);
 
   y += 20;
   serif("normal");
   doc.setFontSize(10);
-  doc.setTextColor("#5C4A3F");
-  doc.text(BUSINESS_ADDRESS, marginX, y);
+  doc.setTextColor("#4B5B7A");
+  doc.text(BUSINESS_ADDRESS, textX, y);
   y += 14;
-  doc.text("Phone: ", marginX, y);
+  doc.text("Phone: ", textX, y);
   const phoneLabelWidth = doc.getTextWidth("Phone: "); // measured while the serif font is active
   sans("normal");
-  doc.text(BUSINESS_PHONE, marginX + phoneLabelWidth, y);
+  doc.text(BUSINESS_PHONE, textX + phoneLabelWidth, y);
 
-  y += 28;
-  doc.setDrawColor("#B87333");
+  y += logo ? 32 : 28;
+  doc.setDrawColor("#1F4BC4");
   doc.setLineWidth(1);
   doc.line(marginX, y, 547, y);
 
@@ -97,7 +135,7 @@ export async function buildInvoicePdf(order: InvoiceOrder): Promise<File> {
 
   y += 24;
   doc.setFontSize(11);
-  doc.setTextColor("#4A1526");
+  doc.setTextColor("#0B1B4D");
   labelValue("Order: ", publicOrderCode(order.order_id), y, true);
   y += 16;
   labelValue("Customer: ", order.customer?.name ?? "", y);
@@ -115,7 +153,7 @@ export async function buildInvoicePdf(order: InvoiceOrder): Promise<File> {
   doc.text("Price", 420, y, { align: "right" });
   doc.text("Subtotal", 547, y, { align: "right" });
   y += 8;
-  doc.setDrawColor("#D9C7A8");
+  doc.setDrawColor("#C9D6EE");
   doc.line(marginX, y, 547, y);
 
   for (const item of order.items) {

@@ -5,8 +5,9 @@ import { useApi } from "@/lib/useApi";
 import { ErrorState, LoadingState } from "@/components/StateViews";
 import QuantitySelector from "@/components/QuantitySelector";
 import { Box, OrderWithDetails, Product, ProductUnit } from "@/lib/types";
-import { dedupeProductUnits } from "@/lib/product-units";
+import { dedupeProductUnits, isSoldIndividually } from "@/lib/product-units";
 import clsx from "clsx";
+import AnimatedNumber from "@/components/motion/AnimatedNumber";
 
 // Item keys: "productId" for a plain product, or "productId::unitLabel" for
 // a specific unit of a multi-unit product (e.g. Halwa "250g").
@@ -67,7 +68,8 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
     const orderedIds = new Set(
       order.items.filter((i) => i.item_type === "product").map((i) => i.product_id)
     );
-    return all.filter((p) => p.active || orderedIds.has(p.product_id));
+    // Box-only products are hidden too, unless already on this order.
+    return all.filter((p) => (p.active && isSoldIndividually(p)) || orderedIds.has(p.product_id));
   }, [productData, order.items]);
 
   const allUnits = dedupeProductUnits(unitsData?.units.filter((u) => u.active) ?? []);
@@ -147,7 +149,7 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
       </p>
 
       <section className="flex flex-col gap-2">
-        <h3 className="font-display font-600 text-base text-maroon-800">Diwali boxes</h3>
+        <h3 className="font-display font-600 text-base text-maroon-800">Boxes</h3>
         {boxesLoading && <LoadingState label="Loading boxes…" />}
         {boxesError && <ErrorState message={boxesError} />}
         <div className="flex flex-col gap-2">
@@ -244,19 +246,21 @@ export default function EditOrderItems({ order, onCancel, onSaved }: Props) {
       <div className="sticky bottom-20 md:bottom-4 bg-ivory/95 backdrop-blur border border-clay-300 rounded-card px-4 py-3 flex items-center justify-between shadow-lg">
         <div>
           <p className="text-xs text-maroon-700/60">New order total</p>
-          <p className="font-display font-700 text-xl text-maroon-800">₹{total}</p>
+          <p className="font-display font-700 text-xl text-maroon-800">
+            <AnimatedNumber value={total} prefix="₹" duration={0.45} />
+          </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="touch-target rounded-full bg-clay-100 text-maroon-800 font-medium px-5"
+            className="press touch-target rounded-full bg-clay-100 text-maroon-800 font-medium px-5"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="touch-target rounded-full bg-marigold-500 text-ink font-semibold px-6 disabled:opacity-60"
+            className="press touch-target rounded-full bg-marigold-500 text-ink font-semibold px-6 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save changes"}
           </button>

@@ -1,11 +1,11 @@
 {
   "name": "Vaiga Order Manager",
   "short_name": "Vaiga Orders",
-  "description": "Diwali 2026 order management system for Vaiga Sweets & Snacks",
+  "description": "Daily order management system for Vaiga Sweets & Snacks",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#14100E",
-  "theme_color": "#14100E",
+  "background_color": "#14296B",
+  "theme_color": "#14296B",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }

@@ -43,6 +43,9 @@ export interface Product {
   price: number;
   active: boolean;
   category?: string; // optional, used to group Production page ("Sweets"/"Snacks")
+  // false = box-only: not offered under "Individual products" when taking an
+  // order. Blank/missing means yes (so existing products keep showing).
+  individual_sale?: boolean;
 }
 
 // A product can optionally be sold in more than one unit — e.g. Halwa as
@@ -131,4 +134,14 @@ export interface CustomerTotals {
   totalIndividualItems: number;
   totalItems: number; // includes items contained in boxes
   totalAmount: number;
+}
+
+// One row in the dashboard "Reminders" card (see /api/reminders)
+export interface ReminderOrder {
+  order_id: string;
+  customerName: string;
+  total: number;
+  fulfillment_date: string;
+  status: string;
+  payment_status: string;
 }

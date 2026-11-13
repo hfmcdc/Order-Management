@@ -6,7 +6,17 @@
 // return JSON.
 // ---------------------------------------------------------------------------
 
-import { appendRow, appendRows, deleteRow, deleteRowsWhere, readSheet, replaceOrderItems, updateRow } from "./sheets";
+import {
+  appendRow,
+  appendRows,
+  deleteRow,
+  deleteRowsWhere,
+  readSheet,
+  replaceOrderItems,
+  updateRow,
+  updateRowsBatch,
+} from "./sheets";
+import type { BulkOrderPatch } from "./bulk-orders";
 import {
   Box,
   BoxContent,
@@ -62,6 +72,41 @@ export async function createCustomer(input: {
     created_at: timestamp,
     updated_at: timestamp,
   } as Customer);
+}
+
+/**
+ * Use the customer if they already exist, otherwise create them from just a
+ * name. Safe to call again after a failed order save: the second call finds
+ * the customer made by the first, so retries never create duplicates.
+ *
+ * Order of matching: a phone number (if given) identifies a customer first;
+ * then an exact name match (ignoring case and extra spaces). If several
+ * customers share that exact name, nothing is guessed — the caller gets the
+ * list back so a person can pick the right one.
+ */
+export async function findOrCreateCustomerByName(input: {
+  name: string;
+  phone?: string;
+  address?: string;
+}): Promise<
+  | { customer: Customer; created: boolean; ambiguous?: undefined }
+  | { ambiguous: Customer[]; customer?: undefined; created?: undefined }
+> {
+  const norm = (n: string) => n.trim().replace(/\s+/g, " ").toLowerCase();
+  const name = input.name.trim().replace(/\s+/g, " ");
+  const phone = (input.phone ?? "").trim();
+
+  if (phone) {
+    const byPhone = await findCustomerByPhone(phone);
+    if (byPhone) return { customer: byPhone, created: false };
+  }
+
+  const sameName = (await listCustomers()).filter((c) => norm(c.name) === norm(name));
+  if (sameName.length === 1) return { customer: sameName[0], created: false };
+  if (sameName.length > 1) return { ambiguous: sameName };
+
+  const customer = await createCustomer({ name, phone, address: input.address ?? "" });
+  return { customer, created: true };
 }
 
 export async function updateCustomer(
@@ -140,6 +185,10 @@ export async function createProductUnit(input: Omit<ProductUnit, "unit_id">): Pr
   return appendRow<ProductUnit>("ProductUnits", { unit_id: "", ...input } as ProductUnit);
 }
 
+export async function updateProductUnit(id: string, patch: Partial<ProductUnit>): Promise<void> {
+  return updateRow<ProductUnit>("ProductUnits", id, patch);
+}
+
 export async function deleteProductUnit(id: string): Promise<void> {
   await deleteRow("ProductUnits", id);
 }
@@ -175,6 +224,61 @@ export async function createBox(
 
 export async function updateBox(id: string, patch: Partial<Box>): Promise<void> {
   return updateRow<Box>("Boxes", id, patch);
+}
+
+/**
+ * Replace everything inside a box with a new list. Deletes the old rows and
+ * appends the new ones; if the append fails, the old rows are put back so a
+ * failed save never leaves a box empty.
+ */
+export async function replaceBoxContents(
+  boxId: string,
+  contents: { product_id: string; quantity: number; unit_label?: string }[]
+): Promise<void> {
+  const previous = (await listBoxContents()).filter((bc) => bc.box_id === boxId);
+  await deleteRowsWhere("BoxContents", (bc) => bc.box_id === boxId);
+  try {
+    if (contents.length > 0) {
+      await appendRows<BoxContent>(
+        "BoxContents",
+        contents.map((c) => ({
+          box_id: boxId,
+          product_id: c.product_id,
+          quantity: c.quantity,
+          unit_label: c.unit_label ?? "",
+        }))
+      );
+    }
+  } catch (err) {
+    if (previous.length > 0) await appendRows<BoxContent>("BoxContents", previous);
+    throw err;
+  }
+}
+
+/**
+ * When a product unit is renamed (e.g. "Piece" -> "Pcs"), keep every box
+ * that uses it pointing at the new label, so box contents don't silently
+ * lose their link to the unit.
+ */
+export async function renameBoxUnitLabel(
+  productId: string,
+  oldLabel: string,
+  newLabel: string
+): Promise<void> {
+  const all = await listBoxContents();
+  const affectedBoxIds = [
+    ...new Set(
+      all.filter((bc) => bc.product_id === productId && bc.unit_label === oldLabel).map((bc) => bc.box_id)
+    ),
+  ];
+  for (const boxId of affectedBoxIds) {
+    const rows = all
+      .filter((bc) => bc.box_id === boxId)
+      .map((bc) =>
+        bc.product_id === productId && bc.unit_label === oldLabel ? { ...bc, unit_label: newLabel } : bc
+      );
+    await replaceBoxContents(boxId, rows);
+  }
 }
 
 /** Permanently delete a box and its contents definition. Past orders that
@@ -287,6 +391,23 @@ export async function updateOrderDetails(
       }))
     );
   }
+}
+
+/**
+ * Apply the same status and/or payment change to many orders in ONE sheet
+ * write (see updateRowsBatch). Mirrors what the single-order screen does:
+ * status and payment_status are set independently, and payment_method is
+ * stored alongside "Paid".
+ */
+export async function bulkUpdateOrders(
+  ids: string[],
+  patch: BulkOrderPatch
+): Promise<{ updated: string[]; missing: string[] }> {
+  const timestamp = nowIso();
+  return updateRowsBatch<Order>(
+    "Orders",
+    ids.map((id) => ({ id, patch: { ...patch, updated_at: timestamp } }))
+  );
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {

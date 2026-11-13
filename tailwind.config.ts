@@ -8,44 +8,44 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // "Midnight Gold" — warm near-black surfaces, cream text, antique-gold accent.
-        // Token NAMES are unchanged from before, so every existing class keeps working:
-        //   maroon-*  = TEXT ramp   (800 = main text, 700 = muted text, 900 = brightest)
+        // "Deep Blue & White" — white surfaces, navy text, royal-blue accent.
+        // Token NAMES are unchanged so every existing class keeps working:
+        //   maroon-*  = TEXT ramp   (800 = main text, 700 = muted text, 900 = strongest)
         //   ivory     = SURFACE     (cards, inputs, nav)  — page background is set in globals.css
-        //   marigold  = ACCENT      (500 = gold buttons, 600 = accent text, 50/100 = tinted fills)
+        //   marigold  = ACCENT      (500 = blue buttons, 600 = accent text, 50/100 = tinted fills)
         //   clay      = LINES/FILLS (100 = subtle fill, 300 = borders)
-        // New purpose-named tokens: wine (dark chips + hero), cream (light text on dark), ink (dark text on gold).
+        //   wine      = deep navy (hero, dark chips, sidebar); cream = white-on-navy text; ink = white-on-blue text
         maroon: {
-          700: "#CDBFA7",
-          800: "#F1E6D2",
-          900: "#FBF3E3",
+          700: "#4B5B7A",
+          800: "#0B1B3A",
+          900: "#050F26",
         },
-        ivory: "#1E1916",
-        cream: "#F1E6D2",
-        ink: "#1A1411",
+        ivory: "#FFFFFF",
+        cream: "#FFFFFF",
+        ink: "#FFFFFF",
         wine: {
-          700: "#7A2B3D",
-          800: "#5C1F2E",
-          900: "#3A1420",
+          700: "#1E3A8A",
+          800: "#14296B",
+          900: "#0B1B4D",
         },
         marigold: {
-          50: "#2A2015",
-          100: "#3B2B18",
-          400: "#E3B15F",
-          500: "#D9A441",
-          600: "#EBC273",
+          50: "#F1F6FF",
+          100: "#E1EBFF",
+          400: "#4F7FE8",
+          500: "#1F4BC4",
+          600: "#17399A",
         },
         gold: {
-          300: "#D9B77E",
-          500: "#D9A441",
+          300: "#93B4F5",
+          500: "#1F4BC4",
         },
         leaf: {
-          500: "#3E8A57",
-          600: "#8CCB9B",
+          500: "#1E8E55",
+          600: "#15783F",
         },
         clay: {
-          100: "#2B241F",
-          300: "#40372F",
+          100: "#EAF0FA",
+          300: "#D3DEF0",
         },
       },
       fontFamily: {

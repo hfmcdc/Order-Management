@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       price: Number(body.price),
       active: body.active ?? true,
       category: body.category ?? "",
+      individual_sale: body.individual_sale ?? true,
     });
     return NextResponse.json({ product }, { status: 201 });
   } catch (err) {
@@ -38,8 +39,32 @@ export async function PATCH(req: NextRequest) {
     if (!body?.product_id) {
       return NextResponse.json({ error: "product_id is required." }, { status: 400 });
     }
-    const { product_id, ...patch } = body;
-    await updateProduct(product_id, patch);
+    // Only these fields can change; anything else in the body is ignored.
+    const patch: {
+      name?: string;
+      price?: number;
+      category?: string;
+      active?: boolean;
+      individual_sale?: boolean;
+    } = {};
+    if (body.name !== undefined) {
+      if (typeof body.name !== "string" || !body.name.trim()) {
+        return NextResponse.json({ error: "Name can't be empty." }, { status: 400 });
+      }
+      patch.name = body.name.trim();
+    }
+    if (body.price !== undefined) {
+      const price = Number(body.price);
+      if (!Number.isFinite(price) || price < 0) {
+        return NextResponse.json({ error: "Price must be a number, 0 or more." }, { status: 400 });
+      }
+      patch.price = price;
+    }
+    if (typeof body.category === "string") patch.category = body.category.trim();
+    if (typeof body.active === "boolean") patch.active = body.active;
+    if (typeof body.individual_sale === "boolean") patch.individual_sale = body.individual_sale;
+
+    await updateProduct(body.product_id, patch);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return handleApiError(err);

@@ -1,4 +1,4 @@
-import { ProductUnit } from "./types";
+import { Product, ProductUnit } from "./types";
 
 /**
  * Collapses duplicate units for the same product+label down to one —
@@ -17,4 +17,13 @@ export function dedupeProductUnits(units: ProductUnit[]): ProductUnit[] {
     byKey.set(`${unit.product_id}::${unit.label}`, unit);
   }
   return [...byKey.values()];
+}
+
+/**
+ * Is this product offered under "Individual products" in an order?
+ * Only an explicit "no" hides it — a blank value (older products, or a
+ * sheet without the column yet) means yes, so nothing disappears by surprise.
+ */
+export function isSoldIndividually(product: Pick<Product, "individual_sale">): boolean {
+  return product.individual_sale !== false;
 }

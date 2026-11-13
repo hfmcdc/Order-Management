@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCustomer, searchCustomers } from "@/lib/repo";
+import { createCustomer, findOrCreateCustomerByName, searchCustomers } from "@/lib/repo";
 import { handleApiError } from "@/lib/api-utils";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,29 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    // find_or_create: reuse the customer if the name (or phone) already
+    // exists, otherwise create them from the name alone.
+    if (body.find_or_create) {
+      const result = await findOrCreateCustomerByName({
+        name: body.name,
+        phone: body.phone ?? "",
+        address: body.address ?? "",
+      });
+      if (result.ambiguous) {
+        return NextResponse.json(
+          {
+            error: `More than one customer is named "${body.name.trim()}". Please pick the right one.`,
+            matches: result.ambiguous,
+          },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json(
+        { customer: result.customer, created: result.created },
+        { status: result.created ? 201 : 200 }
+      );
+    }
+
     const customer = await createCustomer({
       name: body.name,
       phone: body.phone ?? "",

@@ -33,7 +33,9 @@ export type SheetTab = keyof typeof SHEET_TABS;
 // single source of truth for how JS objects map to spreadsheet columns.
 export const SHEET_COLUMNS: Record<SheetTab, string[]> = {
   Customers: ["customer_id", "name", "phone", "address", "created_at", "updated_at"],
-  Products: ["product_id", "name", "price", "active", "category"],
+  // individual_sale appended at the end — rows written before this existed
+  // read back as blank, which means "yes, sold individually" (the old behavior).
+  Products: ["product_id", "name", "price", "active", "category", "individual_sale"],
   Boxes: ["box_id", "name", "price", "description", "active"],
   // unit_label appended at the end — existing rows (written before this
   // feature existed) just read back as "" for it, meaning "no specific
@@ -90,6 +92,21 @@ const ID_PREFIX: Record<SheetTab, string> = {
 };
 
 let cachedClient: sheets_v4.Sheets | null = null;
+
+// ---------------------------------------------------------------------------
+// Read cache. Every Google Sheets read is a ~300-1000ms network round trip,
+// and most screens trigger several. We keep each tab's rows in memory for a
+// few seconds, share in-flight requests (so 5 parallel calls = 1 request),
+// and drop the tab's cache the moment this server writes to it.
+// ---------------------------------------------------------------------------
+const CACHE_TTL_MS = 15_000;
+const rowCache = new Map<SheetTab, { at: number; rows: string[][] }>();
+const inflight = new Map<SheetTab, Promise<string[][]>>();
+
+function invalidate(tab: SheetTab) {
+  rowCache.delete(tab);
+  inflight.delete(tab);
+}
 
 function assertEnv() {
   const missing = ["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_PRIVATE_KEY", "GOOGLE_SHEET_ID"].filter(
@@ -151,19 +168,29 @@ async function withErrorHandling<T>(action: () => Promise<T>, context: string): 
 
 /** Read every row of a tab and return it as an array of typed objects. */
 export async function readSheet<T extends Record<string, any>>(tab: SheetTab): Promise<T[]> {
-  const client = getClient();
   const columns = SHEET_COLUMNS[tab];
-  const range = `${SHEET_TABS[tab]}!A2:${colLetter(columns.length)}`;
-
-  const res = await withErrorHandling(
-    () => client.spreadsheets.values.get({ spreadsheetId: getSheetId(), range }),
-    `Failed to read ${tab}`
-  );
-
-  const rows = res.data.values ?? [];
+  const rows = await readSheetCached(tab);
   return rows
     .filter((row) => row.some((cell) => cell !== undefined && cell !== ""))
     .map((row) => rowToObject<T>(row, columns));
+}
+
+async function readSheetCached(tab: SheetTab): Promise<string[][]> {
+  const hit = rowCache.get(tab);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.rows;
+  const pending = inflight.get(tab);
+  if (pending) return pending;
+
+  const p = readSheetRaw(tab)
+    .then((rows) => {
+      if (inflight.get(tab) === p) rowCache.set(tab, { at: Date.now(), rows });
+      return rows;
+    })
+    .finally(() => {
+      if (inflight.get(tab) === p) inflight.delete(tab);
+    });
+  inflight.set(tab, p);
+  return p;
 }
 
 /** Append a single new row, generating a safe sequential ID first. */
@@ -193,6 +220,7 @@ export async function appendRow<T extends Record<string, any>>(
       }),
     `Failed to add row to ${tab}`
   );
+  invalidate(tab);
 
   return record as T;
 }
@@ -234,6 +262,7 @@ export async function appendRows<T extends Record<string, any>>(
       }),
     `Failed to add rows to ${tab}`
   );
+  invalidate(tab);
 
   return records as T[];
 }
@@ -287,6 +316,67 @@ export async function updateRow<T extends Record<string, any>>(
       }),
     `Failed to update ${tab} row ${id}`
   );
+  invalidate(tab);
+}
+
+/**
+ * Patch SEVERAL rows of one tab with a single read and a single write.
+ * Calling updateRow() in a loop would re-read the whole sheet once per row
+ * (and fire one write per row), which trips Google's per-minute quota as soon
+ * as someone bulk-updates a few dozen orders. Here it is always 1 read + 1
+ * batchUpdate, whatever the number of rows.
+ *
+ * Ids that can't be found are returned in `missing` (nothing is written for
+ * them) instead of failing the whole batch.
+ */
+export async function updateRowsBatch<T extends Record<string, any>>(
+  tab: SheetTab,
+  updates: { id: string; patch: Partial<T> }[]
+): Promise<{ updated: string[]; missing: string[] }> {
+  const updated: string[] = [];
+  const missing: string[] = [];
+  if (updates.length === 0) return { updated, missing };
+
+  const client = getClient();
+  const columns = SHEET_COLUMNS[tab];
+  const idColumn = ID_COLUMN[tab];
+
+  const rawRows = await readSheetRaw(tab);
+  const rowIndexById = new Map<string, number>();
+  rawRows.forEach((row, i) => {
+    const record = rowToObject<any>(row, columns);
+    rowIndexById.set(String(record[idColumn]), i);
+  });
+
+  const data: { range: string; values: string[][] }[] = [];
+  for (const { id, patch } of updates) {
+    const rowIndex = rowIndexById.get(id);
+    if (rowIndex === undefined) {
+      missing.push(id);
+      continue;
+    }
+    const existing = rowToObject<any>(rawRows[rowIndex], columns);
+    const definedPatch = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+    const merged = { ...existing, ...definedPatch };
+    data.push({
+      range: `${SHEET_TABS[tab]}!A${rowIndex + 2}:${colLetter(columns.length)}${rowIndex + 2}`,
+      values: [columns.map((col) => stringifyCell(merged[col]))],
+    });
+    updated.push(id);
+  }
+
+  if (data.length > 0) {
+    await withErrorHandling(
+      () =>
+        client.spreadsheets.values.batchUpdate({
+          spreadsheetId: getSheetId(),
+          requestBody: { valueInputOption: "RAW", data },
+        }),
+      `Failed to update ${tab} rows`
+    );
+    invalidate(tab);
+  }
+  return { updated, missing };
 }
 
 /**
@@ -329,6 +419,7 @@ export async function deleteRow(tab: SheetTab, id: string): Promise<void> {
       }),
     `Failed to delete ${tab} row ${id}`
   );
+  invalidate(tab);
 }
 
 /** Delete every row in a tab matching a predicate — used to clean up an
@@ -370,6 +461,7 @@ export async function deleteRowsWhere(
       }),
     `Failed to delete rows from ${tab}`
   );
+  invalidate(tab);
 }
 
 /**
@@ -417,6 +509,7 @@ export async function replaceOrderItems<T extends Record<string, any>>(
         }),
       "Failed to remove old order items"
     );
+    invalidate("OrderItems");
   }
 
   return appendRows<T>(tab, newItems);
@@ -440,7 +533,8 @@ async function nextIdNumber(tab: SheetTab): Promise<number> {
   const prefix = ID_PREFIX[tab];
   if (!idColumn) return 1;
 
-  const rows = await readSheet<any>(tab);
+  const columns = SHEET_COLUMNS[tab];
+  const rows = (await readSheetRaw(tab)).map((r) => rowToObject<any>(r, columns));
   let max = 0;
   for (const row of rows) {
     const value = String(row[idColumn] ?? "");

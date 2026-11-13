@@ -5,10 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import clsx from "clsx";
+import { AnimatePresence, motion } from "framer-motion";
 
 const ALL_LINKS = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
   { href: "/orders", label: "Orders", icon: OrdersIcon },
+  { href: "/sales", label: "Sales", icon: SalesIcon },
+  { href: "/deepavali", label: "Deepavali 2026", icon: DeepamIcon },
   { href: "/customers", label: "Customers", icon: CustomersIcon },
   { href: "/production", label: "Production", icon: ProductionIcon },
   { href: "/products", label: "Products", icon: ProductsIcon },
@@ -22,8 +25,9 @@ const ALL_LINKS = [
 const PRIMARY_MOBILE_LINKS = ALL_LINKS.filter((l) =>
   ["/", "/orders", "/customers"].includes(l.href)
 );
+// Sales is laptop-only, so it never appears in the phone menu.
 const MORE_LINKS = ALL_LINKS.filter(
-  (l) => !["/", "/orders", "/customers"].includes(l.href)
+  (l) => !["/", "/orders", "/customers", "/sales"].includes(l.href)
 );
 
 export default function Nav() {
@@ -34,31 +38,33 @@ export default function Nav() {
   return (
     <>
       {/* Desktop side rail */}
-      <nav className="hidden md:flex md:flex-col md:w-56 md:shrink-0 border-r border-clay-300/60 bg-ivory px-4 py-6 gap-1">
+      <nav className="hidden md:flex md:flex-col md:w-60 md:shrink-0 md:sticky md:top-0 md:h-screen md:overflow-y-auto bg-gradient-to-b from-wine-900 to-wine-800 px-4 py-6 gap-1">
         <div className="mb-6 px-2 flex items-center gap-2.5">
-          <div className="w-9 h-9 relative shrink-0">
-            <Image src="/logo.png" alt="Vaiga" fill sizes="36px" />
+          <div className="w-10 h-10 relative shrink-0 rounded-xl bg-white p-1 overflow-hidden">
+            <Image src="/logo.png" alt="Vaiga" fill sizes="40px" className="object-contain p-0.5" />
           </div>
           <div>
-            <p className="font-display font-700 text-lg text-maroon-800 leading-tight">
+            <p className="font-display font-700 text-lg text-cream leading-tight">
               Vaiga
             </p>
-            <p className="text-[11px] text-maroon-700/70 leading-tight">Diwali 2026</p>
+            <p className="text-[11px] text-cream/60 leading-tight">Daily orders</p>
           </div>
         </div>
         {ALL_LINKS.map((link) => (
           <NavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
         ))}
-        <Link
-          href="/orders/new"
-          className="mt-4 touch-target flex items-center justify-center gap-2 rounded-card bg-marigold-500 text-ink font-semibold px-4 shadow-sm hover:bg-marigold-600 transition-colors"
-        >
-          + New Order
-        </Link>
+        <motion.div whileTap={{ scale: 0.96 }} whileHover={{ y: -2 }} className="mt-4">
+          <Link
+            href="/orders/new"
+            className="btn-shine touch-target flex items-center justify-center gap-2 rounded-card bg-white text-wine-800 font-semibold px-4 shadow-md hover:bg-marigold-100 transition-colors"
+          >
+            + New Order
+          </Link>
+        </motion.div>
       </nav>
 
       {/* Mobile bottom nav — 3 spacious slots + a raised center action + More */}
-      <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-30 bg-ivory/95 backdrop-blur-sm shadow-[0_-2px_16px_rgba(0,0,0,0.45)] flex items-stretch justify-around pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-30 bg-ivory/95 backdrop-blur-sm shadow-[0_-2px_16px_rgba(15,42,107,0.12)] flex items-stretch justify-around pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {PRIMARY_MOBILE_LINKS.slice(0, 2).map((link) => (
           <MobileNavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
         ))}
@@ -67,21 +73,27 @@ export default function Nav() {
             important action gets the most prominent spot, not squeezed
             in as a 7th equal-weight icon. */}
         <div className="flex-1 flex items-start justify-center -mt-6">
-          <button
+          <motion.button
             onClick={() => router.push("/orders/new")}
             aria-label="New order"
-            className="w-14 h-14 rounded-full bg-marigold-500 text-ink flex items-center justify-center shadow-lg shadow-marigold-500/30 active:scale-95 transition-transform"
+            whileTap={{ scale: 0.88, rotate: 90 }}
+            whileHover={{ scale: 1.05 }}
+            initial={{ scale: 0, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 18, delay: 0.1 }}
+            className="fab-glow w-14 h-14 rounded-full bg-marigold-500 text-ink flex items-center justify-center"
           >
             <PlusIcon />
-          </button>
+          </motion.button>
         </div>
 
         {PRIMARY_MOBILE_LINKS.slice(2).map((link) => (
           <MobileNavLink key={link.href} link={link} active={isActive(pathname, link.href)} />
         ))}
 
-        <button
+        <motion.button
           onClick={() => setShowMore(true)}
+          whileTap={{ scale: 0.9 }}
           className={clsx(
             "flex-1 flex flex-col items-center justify-center gap-1 py-1.5 touch-target min-w-0",
             MORE_LINKS.some((l) => isActive(pathname, l.href)) ? "text-marigold-600" : "text-maroon-700/55"
@@ -89,41 +101,64 @@ export default function Nav() {
         >
           <MoreIcon />
           <span className="text-[11px] leading-none">More</span>
-        </button>
+        </motion.button>
       </nav>
 
-      {/* More sheet */}
-      {showMore && (
-        <div
-          className="no-print md:hidden fixed inset-0 z-40 bg-black/35 flex items-end"
-          onClick={() => setShowMore(false)}
-        >
-          <div
-            className="w-full bg-ivory rounded-t-[28px] px-3 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.6)]"
-            onClick={(e) => e.stopPropagation()}
+      {/* More sheet — springs up, drag it down to dismiss, links cascade in */}
+      <AnimatePresence>
+        {showMore && (
+          <motion.div
+            key="more-backdrop"
+            className="no-print md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] flex items-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setShowMore(false)}
           >
-            <div className="w-10 h-1.5 rounded-full bg-clay-300 mx-auto mb-4" />
-            <div className="flex flex-col gap-1">
-              {MORE_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setShowMore(false)}
-                  className={clsx(
-                    "touch-target flex items-center gap-3 rounded-2xl px-4 text-base font-medium",
-                    isActive(pathname, link.href)
-                      ? "bg-marigold-100 text-maroon-800"
-                      : "text-maroon-800 active:bg-clay-100"
-                  )}
-                >
-                  <link.icon />
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+            <motion.div
+              className="w-full bg-ivory rounded-t-[28px] px-3 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(15,42,107,0.25)]"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 380, damping: 36 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.6 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 90 || info.velocity.y > 500) setShowMore(false);
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-10 h-1.5 rounded-full bg-clay-300 mx-auto mb-4" />
+              <div className="flex flex-col gap-1">
+                {MORE_LINKS.map((link, i) => (
+                  <motion.div
+                    key={link.href}
+                    initial={{ opacity: 0, x: -14 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.08 + i * 0.04, type: "spring", stiffness: 320, damping: 28 }}
+                  >
+                    <Link
+                      href={link.href}
+                      onClick={() => setShowMore(false)}
+                      className={clsx(
+                        "touch-target flex items-center gap-3 rounded-2xl px-4 text-base font-medium transition-colors",
+                        isActive(pathname, link.href)
+                          ? "bg-marigold-100 text-maroon-800"
+                          : "text-maroon-800 active:bg-clay-100"
+                      )}
+                    >
+                      <link.icon />
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -138,12 +173,24 @@ function NavLink({ link, active }: { link: (typeof ALL_LINKS)[number]; active: b
     <Link
       href={link.href}
       className={clsx(
-        "touch-target flex items-center gap-3 rounded-card px-3 text-sm font-medium transition-colors",
-        active ? "bg-marigold-100 text-maroon-800" : "text-maroon-700/80 hover:bg-clay-100"
+        "group relative touch-target flex items-center gap-3 rounded-card px-3 text-sm font-medium transition-colors duration-200",
+        active ? "text-cream" : "text-cream/70 hover:bg-white/10 hover:text-cream"
       )}
     >
-      <link.icon />
-      {link.label}
+      {/* one highlight that glides between items as you navigate */}
+      {active && (
+        <motion.span
+          layoutId="desktop-nav-pill"
+          className="absolute inset-0 rounded-card bg-white/15"
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        />
+      )}
+      <span className="relative z-10 transition-transform duration-200 group-hover:scale-110 group-hover:text-cream">
+        <link.icon />
+      </span>
+      <span className="relative z-10 transition-transform duration-200 group-hover:translate-x-0.5">
+        {link.label}
+      </span>
     </Link>
   );
 }
@@ -154,15 +201,34 @@ function MobileNavLink({ link, active }: { link: (typeof ALL_LINKS)[number]; act
       href={link.href}
       className="flex-1 flex flex-col items-center justify-center gap-1 py-1.5 touch-target min-w-0"
     >
-      <span
+      <motion.span
+        whileTap={{ scale: 0.85 }}
         className={clsx(
-          "w-11 h-8 flex items-center justify-center rounded-full transition-colors",
-          active ? "bg-marigold-100 text-marigold-600" : "text-maroon-700/55"
+          "relative w-11 h-8 flex items-center justify-center rounded-full transition-colors duration-200",
+          active ? "text-marigold-600" : "text-maroon-700/55"
         )}
       >
-        <link.icon />
-      </span>
-      <span className={clsx("text-[11px] leading-none", active ? "text-marigold-600 font-medium" : "text-maroon-700/55")}>
+        {active && (
+          <motion.span
+            layoutId="mobile-nav-pill"
+            className="absolute inset-0 rounded-full bg-marigold-100"
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+          />
+        )}
+        <motion.span
+          className="relative z-10"
+          animate={{ scale: active ? [1, 1.25, 1] : 1, y: active ? [0, -3, 0] : 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <link.icon />
+        </motion.span>
+      </motion.span>
+      <span
+        className={clsx(
+          "text-[11px] leading-none transition-colors duration-200",
+          active ? "text-marigold-600 font-medium" : "text-maroon-700/55"
+        )}
+      >
         {link.label}
       </span>
     </Link>
@@ -183,6 +249,15 @@ function OrdersIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <rect x="4" y="4" width="16" height="17" rx="2" />
       <path d="M8 9h8M8 13h8M8 17h5" strokeLinecap="round" />
+    </svg>
+  );
+}
+function SalesIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 20V4" strokeLinecap="round" />
+      <path d="M4 20h16" strokeLinecap="round" />
+      <path d="m8 15 3.5-4 3 2.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -238,6 +313,15 @@ function MoreIcon() {
       <circle cx="5" cy="12" r="2" />
       <circle cx="12" cy="12" r="2" />
       <circle cx="19" cy="12" r="2" />
+    </svg>
+  );
+}
+
+function DeepamIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M3 14h18c0 3.3-3.6 6-9 6s-9-2.7-9-6Z" strokeLinejoin="round" />
+      <path d="M12 3c2 2.2 2.4 4 0 6-2.4-2-2-3.8 0-6Z" strokeLinejoin="round" />
     </svg>
   );
 }

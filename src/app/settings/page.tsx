@@ -27,10 +27,10 @@ function ExportButton({ href, label }: { href: string; label: string }) {
   return (
     <a
       href={href}
-      className="touch-target rounded-card border border-clay-300 bg-clay-100/40 px-4 flex items-center justify-between text-maroon-800 font-medium hover:bg-clay-100"
+      className="group press touch-target rounded-card border border-clay-300 bg-clay-100/40 px-4 flex items-center justify-between text-maroon-800 font-medium hover:bg-clay-100 hover:border-marigold-400/50 transition-colors"
     >
       {label}
-      <span className="text-marigold-600 text-sm">Download</span>
+      <span className="text-marigold-600 text-sm transition-transform duration-200 group-hover:translate-y-0.5">Download ↓</span>
     </a>
   );
 }

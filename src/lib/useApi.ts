@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseApiResult<T> {
   data: T | null;
@@ -19,13 +19,17 @@ export function useApi<T = any>(url: string | null): UseApiResult<T> {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  // Remembers which URL `data` belongs to, so a refresh() of the SAME url can
+  // update in place (no blank "loading" screen → animations can play) while a
+  // different url still shows the loading state like before.
+  const loadedUrl = useRef<string | null>(null);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
     if (!url) return;
     let cancelled = false;
-    setLoading(true);
+    if (loadedUrl.current !== url) setLoading(true);
     setError(null);
 
     fetch(url)
@@ -35,7 +39,10 @@ export function useApi<T = any>(url: string | null): UseApiResult<T> {
         return body;
       })
       .then((body) => {
-        if (!cancelled) setData(body);
+        if (!cancelled) {
+          loadedUrl.current = url;
+          setData(body);
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err.message ?? "Unable to load data. Please check your connection.");
