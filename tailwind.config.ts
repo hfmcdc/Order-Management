@@ -8,20 +8,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // "Deep Blue & White" — white surfaces, navy text, royal-blue accent.
+        // Dark surfaces and light text, with a clear blue accent.
         // Token NAMES are unchanged so every existing class keeps working:
         //   maroon-*  = TEXT ramp   (800 = main text, 700 = muted text, 900 = strongest)
-        //   ivory     = SURFACE     (cards, inputs, nav)  — page background is set in globals.css
-        //   marigold  = ACCENT      (500 = blue buttons, 600 = accent text, 50/100 = tinted fills)
-        //   clay      = LINES/FILLS (100 = subtle fill, 300 = borders)
-        //   wine      = deep navy (hero, dark chips, sidebar); cream = white-on-navy text; ink = white-on-blue text
+        //   ivory     = SURFACE     (cards, inputs, nav)
+        //   marigold  = ACCENT      (blue buttons, links, and tinted fills)
+        //   clay      = LINES/FILLS (subtle dark fills and borders)
+        //   wine      = deep blue (hero and sidebar); cream/ink = light text
         maroon: {
-          700: "#4B5B7A",
-          800: "#0B1B3A",
-          900: "#050F26",
+          700: "#B4BED0",
+          800: "#F3F5FA",
+          900: "#FFFFFF",
         },
-        ivory: "#FFFFFF",
-        cream: "#FFFFFF",
+        ivory: "#12151C",
+        cream: "#F3F5FA",
         ink: "#FFFFFF",
         wine: {
           700: "#1E3A8A",
@@ -29,23 +29,23 @@ const config: Config = {
           900: "#0B1B4D",
         },
         marigold: {
-          50: "#F1F6FF",
-          100: "#E1EBFF",
-          400: "#4F7FE8",
-          500: "#1F4BC4",
-          600: "#17399A",
+          50: "#151C2B",
+          100: "#202B40",
+          400: "#83A5FF",
+          500: "#4169E1",
+          600: "#9AB4FF",
         },
         gold: {
-          300: "#93B4F5",
-          500: "#1F4BC4",
+          300: "#9AB4FF",
+          500: "#4169E1",
         },
         leaf: {
           500: "#1E8E55",
           600: "#15783F",
         },
         clay: {
-          100: "#EAF0FA",
-          300: "#D3DEF0",
+          100: "#1C222D",
+          300: "#343C4A",
         },
       },
       fontFamily: {

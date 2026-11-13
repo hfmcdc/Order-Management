@@ -8,12 +8,12 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
-  background-color: #EEF3FB; /* cool off-white page background */
-  color: #0B1B3A;            /* navy text */
+  background-color: #08090C;
+  color: #F3F5FA;
 }
 
 /* Playfair's default numerals are old-style (uneven heights) — force lining
@@ -32,16 +32,16 @@ button, a, input, select, textarea {
 }
 
 ::placeholder {
-  color: rgba(75, 91, 122, 0.55);
+  color: rgba(214, 221, 235, 0.55);
 }
 
 /* Soft card: raised surface with a hairline edge — on dark backgrounds the
    hairline does the work that shadows do on light ones. */
 .card {
-  background: #FFFFFF;
+  background: #12151C;
   border-radius: 20px;
-  border: 1px solid #D9E3F4;
-  box-shadow: 0 1px 2px rgba(15, 42, 107, 0.06), 0 8px 24px rgba(15, 42, 107, 0.07);
+  border: 1px solid #292F3A;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 /* Printing: paper is white, so force dark-on-white regardless of the dark UI.

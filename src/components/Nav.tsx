@@ -56,7 +56,7 @@ export default function Nav() {
         <motion.div whileTap={{ scale: 0.96 }} whileHover={{ y: -2 }} className="mt-4">
           <Link
             href="/orders/new"
-            className="btn-shine touch-target flex items-center justify-center gap-2 rounded-card bg-white text-wine-800 font-semibold px-4 shadow-md hover:bg-marigold-100 transition-colors"
+            className="btn-shine touch-target flex items-center justify-center gap-2 rounded-card bg-marigold-500 text-white font-semibold px-4 shadow-md hover:bg-marigold-400 transition-colors"
           >
             + New Order
           </Link>

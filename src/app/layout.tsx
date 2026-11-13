@@ -30,13 +30,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black",
     title: "Vaiga",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#14296B",
+  themeColor: "#08090C",
   width: "device-width",
   initialScale: 1,
 };
